@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Anthropic",
+    "token": "anthropic",
+    "enabled": true
+  },
+  {
+    "name": "OpenAI",
+    "token": "openai",
+    "enabled": true
+  },
+  {
+    "name": "Stripe",
+    "token": "stripe",
+    "enabled": true
+  },
+  {
+    "name": "Figma",
+    "token": "figma",
+    "enabled": true
+  },
+  {
+    "name": "Notion",
+    "token": "notion",
+    "enabled": true
+  },
+  {
+    "name": "Databricks",
+    "token": "databricks",
+    "enabled": true
+  }
+]
