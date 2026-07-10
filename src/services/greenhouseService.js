@@ -3,7 +3,6 @@
  * Fetches jobs from Greenhouse job boards
  */
 
-import companiesConfig from '../config/greenhouse-companies.json';
 import jobFiltersConfig from '../config/job-filters.json';
 import { calculateJobAge } from '../utils/jobAge';
 import { cleanHtmlContent } from '../utils/htmlCleaner';
@@ -101,9 +100,10 @@ function processCompanyJobs(company, rawJobs) {
 
 /**
  * Fetch jobs from all enabled companies
+ * @param {Array<{name: string, token: string, enabled: boolean}>} companies
  */
-export async function fetchAllJobs() {
-  const enabledCompanies = companiesConfig.filter(c => c.enabled === true);
+export async function fetchAllJobs(companies) {
+  const enabledCompanies = companies.filter(c => c.enabled === true);
 
   const results = await Promise.allSettled(
     enabledCompanies.map(company => fetchCompanyJobs(company))
@@ -161,10 +161,11 @@ export async function fetchAllJobs() {
 }
 
 /**
- * Get companies configuration
+ * Get companies configuration for display
+ * @param {Array<{name: string, token: string, enabled: boolean}>} companies
  */
-export function getCompaniesConfig() {
-  return companiesConfig;
+export function getCompaniesConfig(companies = []) {
+  return companies;
 }
 
 /**

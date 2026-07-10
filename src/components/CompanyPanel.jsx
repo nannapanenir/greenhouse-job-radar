@@ -1,10 +1,8 @@
 import { Building2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { getCompaniesConfig } from '../services/greenhouseService';
 
-export default function CompanyPanel() {
+export default function CompanyPanel({ companies = [] }) {
   const [isOpen, setIsOpen] = useState(false);
-  const companies = getCompaniesConfig();
 
   const enabledCompanies = companies.filter(c => c.enabled);
   const disabledCompanies = companies.filter(c => !c.enabled);

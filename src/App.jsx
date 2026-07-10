@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Briefcase } from 'lucide-react';
+import { RefreshCw, Briefcase, AlertCircle } from 'lucide-react';
 import Header from './components/Header';
 import ResultsSummary from './components/ResultsSummary';
 import TimeFilters from './components/TimeFilters';
@@ -9,7 +9,9 @@ import JobDetailsModal from './components/JobDetailsModal';
 import CompanyPanel from './components/CompanyPanel';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import FailedCompanies from './components/FailedCompanies';
+import Footer from './components/Footer';
 import { fetchAllJobs } from './services/greenhouseService';
+import { getCompanies } from './services/companyConfigService';
 import {
   filterByTime,
   filterByStatus,
@@ -32,6 +34,10 @@ export default function App() {
   const [successfulCompanies, setSuccessfulCompanies] = useState([]);
   const [failedCompanies, setFailedCompanies] = useState([]);
   const [totalCompaniesSearched, setTotalCompaniesSearched] = useState(0);
+
+  const [companies, setCompanies] = useState([]);
+  const [companiesLoading, setCompaniesLoading] = useState(true);
+  const [companiesError, setCompaniesError] = useState(null);
 
   const [selectedJob, setSelectedJob] = useState(null);
 
@@ -72,10 +78,30 @@ export default function App() {
     }));
   }, [quickFilter, maxAgeHours]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const loaded = await getCompanies();
+        if (!cancelled) {
+          setCompanies(loaded);
+          setCompaniesLoading(false);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCompaniesError(error.message);
+          setCompaniesLoading(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const handleFetchJobs = async () => {
+    if (companiesError || companies.length === 0) return;
     setIsLoading(true);
     try {
-      const result = await fetchAllJobs();
+      const result = await fetchAllJobs(companies);
       setJobs(result.jobs);
       setSuccessfulCompanies(result.successfulCompanies);
       setFailedCompanies(result.failedCompanies);
@@ -129,7 +155,7 @@ export default function App() {
   filteredJobs = filterByStatus(filteredJobs, statusFilter ? [statusFilter] : [], jobStatuses);
   filteredJobs = sortJobs(filteredJobs, sortBy);
 
-  const companies = getUniqueCompanies(jobs);
+  const filterCompanies = getUniqueCompanies(jobs);
   const keywords = getUniqueMatchedKeywords(jobs);
 
   const jobsLast3Hours = jobs.filter(j => j.jobAgeHours <= 3).length;
@@ -144,7 +170,7 @@ export default function App() {
         <div className="flex justify-center">
           <button
             onClick={handleFetchJobs}
-            disabled={isLoading}
+            disabled={isLoading || companiesLoading || !!companiesError}
             className={`flex items-center gap-2 px-6 py-3 text-lg font-medium rounded-lg transition-all ${
               isLoading
                 ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
@@ -152,9 +178,16 @@ export default function App() {
             }`}
           >
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Fetching Latest Jobs...' : 'Fetch Latest Jobs'}
+            {isLoading ? 'Fetching Latest Jobs...' : companiesLoading ? 'Loading Companies...' : 'Fetch Latest Jobs'}
           </button>
         </div>
+
+        {companiesError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <span className="text-sm text-red-700">Unable to load company configuration.</span>
+          </div>
+        )}
 
         <ResultsSummary
           summary={{
@@ -194,7 +227,7 @@ export default function App() {
           setStatusFilter={setStatusFilter}
           sortBy={sortBy}
           setSortBy={setSortBy}
-          companies={companies}
+          companies={filterCompanies}
           keywords={keywords}
           jobStatuses={jobStatuses}
         />
@@ -234,7 +267,7 @@ export default function App() {
           </div>
 
           <div className="space-y-4">
-            <CompanyPanel />
+            <CompanyPanel companies={companies} />
             <ConfigurationPanel />
           </div>
         </div>
@@ -248,6 +281,8 @@ export default function App() {
           onStatusChange={handleStatusChange}
         />
       )}
+
+      <Footer />
     </div>
   );
 }
