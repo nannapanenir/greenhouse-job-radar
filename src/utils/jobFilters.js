@@ -73,21 +73,22 @@ export function applyRoleProfile(jobs, profile) {
   return result;
 }
 
+const compiledLocationLists = new WeakMap();
+
 /**
  * Check if a location matches any of the allowed location keywords
+ * (whole word, case-insensitive). Compiled regexes are cached per list.
  */
 export function matchesLocation(location, locationKeywords) {
-  if (!location) return false; // No location provided, will be filtered
+  if (!location) return false;
 
-  const locationLower = location.toLowerCase();
-
-  for (const keyword of locationKeywords) {
-    if (locationLower.includes(keyword.toLowerCase())) {
-      return true;
-    }
+  let compiled = compiledLocationLists.get(locationKeywords);
+  if (!compiled) {
+    compiled = compileKeywords(locationKeywords);
+    compiledLocationLists.set(locationKeywords, compiled);
   }
 
-  return false;
+  return compiled.some(({ regex }) => regex.test(location));
 }
 
 /**

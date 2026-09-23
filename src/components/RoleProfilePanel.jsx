@@ -285,10 +285,14 @@ export default function RoleProfilePanel({
                   </div>
                 )}
 
-                <div className="mt-3">
-                  <span className="text-xs font-medium text-slate-500">Location Keywords</span>
-                  <KeywordChips keywords={LOCATION_KEYWORDS} className="bg-sky-50 text-sky-700" />
-                </div>
+                <details className="mt-3 group">
+                  <summary className="text-xs font-medium text-slate-500 cursor-pointer select-none hover:text-slate-700">
+                    US Location Keywords ({LOCATION_KEYWORDS.length}) — shared by all roles
+                  </summary>
+                  <div className="max-h-48 overflow-y-auto">
+                    <KeywordChips keywords={LOCATION_KEYWORDS} className="bg-sky-50 text-sky-700" />
+                  </div>
+                </details>
 
                 <p className="text-xs text-slate-400 mt-3">
                   Matching {activeProfile.searchDescription ? 'job title and description' : 'job title only'}.
