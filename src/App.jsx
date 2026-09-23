@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, Briefcase, AlertCircle } from 'lucide-react';
 import Header from './components/Header';
 import ResultsSummary from './components/ResultsSummary';
@@ -7,12 +7,21 @@ import JobFilters from './components/JobFilters';
 import JobCard from './components/JobCard';
 import JobDetailsModal from './components/JobDetailsModal';
 import CompanyPanel from './components/CompanyPanel';
-import ConfigurationPanel from './components/ConfigurationPanel';
+import RoleProfilePanel from './components/RoleProfilePanel';
 import FailedCompanies from './components/FailedCompanies';
 import Footer from './components/Footer';
 import { fetchAllJobs } from './services/greenhouseService';
 import { getCompanies } from './services/companyConfigService';
 import {
+  loadProfiles,
+  saveProfiles,
+  resetProfiles,
+  resolveActiveProfileId,
+  saveActiveProfileId,
+  createProfileId
+} from './services/roleProfileService';
+import {
+  applyRoleProfile,
   filterByTime,
   filterByStatus,
   searchJobs,
@@ -23,7 +32,6 @@ import {
   getUniqueMatchedKeywords
 } from './utils/jobFilters';
 
-const JOBS_STORAGE_KEY = 'aiJobRadar_jobs';
 const STATUS_STORAGE_KEY = 'aiJobRadar_jobStatuses';
 const FILTER_STORAGE_KEY = 'aiJobRadar_filterSettings';
 
@@ -52,6 +60,15 @@ export default function App() {
   const [keywordFilter, setKeywordFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+
+  const [profiles, setProfiles] = useState(loadProfiles);
+  const [activeProfileId, setActiveProfileId] = useState(() => resolveActiveProfileId(profiles));
+
+  const activeProfile = profiles.find(p => p.id === activeProfileId) ?? profiles[0] ?? null;
+
+  useEffect(() => {
+    if (activeProfile) saveActiveProfileId(activeProfile.id);
+  }, [activeProfile]);
 
   const [jobStatuses, setJobStatuses] = useState(() => {
     const stored = localStorage.getItem(STATUS_STORAGE_KEY);
@@ -107,7 +124,6 @@ export default function App() {
       setFailedCompanies(result.failedCompanies);
       setTotalCompaniesSearched(result.totalCompaniesSearched);
       setLastFetched(new Date());
-      localStorage.setItem(JOBS_STORAGE_KEY, JSON.stringify(result.jobs));
     } catch (error) {
       console.error('Failed to fetch jobs:', error);
     } finally {
@@ -143,7 +159,41 @@ export default function App() {
     }));
   }, []);
 
-  let filteredJobs = jobs;
+  const handleSelectProfile = (id) => {
+    setActiveProfileId(id);
+    setKeywordFilter('');
+  };
+
+  const handleSaveProfile = (profile) => {
+    const id = profile.id ?? createProfileId(profile.name, profiles);
+    const saved = { ...profile, id };
+    const next = profile.id
+      ? profiles.map(p => (p.id === id ? saved : p))
+      : [...profiles, saved];
+    setProfiles(next);
+    saveProfiles(next);
+    handleSelectProfile(id);
+  };
+
+  const handleDeleteProfile = (id) => {
+    const next = profiles.filter(p => p.id !== id);
+    if (next.length === 0) return;
+    setProfiles(next);
+    saveProfiles(next);
+    if (id === activeProfile?.id) {
+      handleSelectProfile(next[0].id);
+    }
+  };
+
+  const handleResetProfiles = () => {
+    const defaults = resetProfiles();
+    setProfiles(defaults);
+    handleSelectProfile(resolveActiveProfileId(defaults));
+  };
+
+  const roleJobs = useMemo(() => applyRoleProfile(jobs, activeProfile), [jobs, activeProfile]);
+
+  let filteredJobs = roleJobs;
 
   if (maxAgeHours !== Infinity) {
     filteredJobs = filterByTime(filteredJobs, maxAgeHours);
@@ -155,12 +205,12 @@ export default function App() {
   filteredJobs = filterByStatus(filteredJobs, statusFilter ? [statusFilter] : [], jobStatuses);
   filteredJobs = sortJobs(filteredJobs, sortBy);
 
-  const filterCompanies = getUniqueCompanies(jobs);
-  const keywords = getUniqueMatchedKeywords(jobs);
+  const filterCompanies = getUniqueCompanies(roleJobs);
+  const keywords = getUniqueMatchedKeywords(roleJobs);
 
-  const jobsLast3Hours = jobs.filter(j => j.jobAgeHours <= 3).length;
-  const jobsLast6Hours = jobs.filter(j => j.jobAgeHours <= 6).length;
-  const jobsLast24Hours = jobs.filter(j => j.jobAgeHours <= 24).length;
+  const jobsLast3Hours = roleJobs.filter(j => j.jobAgeHours <= 3).length;
+  const jobsLast6Hours = roleJobs.filter(j => j.jobAgeHours <= 6).length;
+  const jobsLast24Hours = roleJobs.filter(j => j.jobAgeHours <= 24).length;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -194,7 +244,7 @@ export default function App() {
             totalCompaniesSearched,
             successfulCompanies: successfulCompanies.length,
             failedCompanies: failedCompanies.length,
-            totalJobs: jobs.length,
+            totalJobs: roleJobs.length,
             jobsLast3Hours,
             jobsLast6Hours,
             jobsLast24Hours,
@@ -248,7 +298,7 @@ export default function App() {
                 <p className="text-slate-500">
                   {jobs.length === 0
                     ? 'No jobs fetched yet. Click "Fetch Latest Jobs" to get started.'
-                    : 'No matching jobs found. Try changing the time filter or updating the keyword and location configuration.'}
+                    : `No matching jobs found for ${activeProfile?.name ?? 'this role'}. Try changing the time filter, switching roles, or editing the role's keywords.`}
                 </p>
               </div>
             ) : (
@@ -268,7 +318,14 @@ export default function App() {
 
           <div className="space-y-4">
             <CompanyPanel companies={companies} />
-            <ConfigurationPanel />
+            <RoleProfilePanel
+              profiles={profiles}
+              activeProfile={activeProfile}
+              onSelectProfile={handleSelectProfile}
+              onSaveProfile={handleSaveProfile}
+              onDeleteProfile={handleDeleteProfile}
+              onResetProfiles={handleResetProfiles}
+            />
           </div>
         </div>
       </main>

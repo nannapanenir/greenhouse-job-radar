@@ -1,0 +1,127 @@
+{
+  "defaultProfileId": "ai-engineer",
+  "profiles": [
+    {
+      "id": "ai-engineer",
+      "name": "AI / LLM Engineer",
+      "includeKeywords": [
+        "AI Engineer",
+        "Applied AI",
+        "LLM",
+        "Large Language Model",
+        "RAG",
+        "Retrieval Augmented Generation",
+        "Machine Learning",
+        "ML Engineer",
+        "Generative AI",
+        "GenAI",
+        "Prompt Engineering",
+        "AI Agent",
+        "Agentic AI",
+        "MLOps",
+        "LLMOps",
+        "AI Platform",
+        "AI Infrastructure",
+        "AI Product Engineer"
+      ],
+      "excludeTitleKeywords": [
+        "Senior",
+        "Staff",
+        "Principal",
+        "Director",
+        "Manager",
+        "Intern",
+        "Internship"
+      ],
+      "searchDescription": false
+    },
+    {
+      "id": "frontend",
+      "name": "Frontend Engineer",
+      "includeKeywords": [
+        "Frontend",
+        "Front End",
+        "Front-End",
+        "UI Engineer",
+        "Web Engineer",
+        "React",
+        "Angular",
+        "TypeScript",
+        "JavaScript"
+      ],
+      "excludeTitleKeywords": [
+        "Senior",
+        "Staff",
+        "Principal",
+        "Director",
+        "Manager",
+        "Intern",
+        "Internship"
+      ],
+      "searchDescription": false
+    },
+    {
+      "id": "full-stack",
+      "name": "Full-Stack Engineer",
+      "includeKeywords": [
+        "Full Stack",
+        "Full-Stack",
+        "Fullstack",
+        "Java",
+        "Spring Boot",
+        "Product Engineer",
+        "Software Engineer, Web"
+      ],
+      "excludeTitleKeywords": [
+        "Senior",
+        "Staff",
+        "Principal",
+        "Director",
+        "Manager",
+        "Intern",
+        "Internship"
+      ],
+      "searchDescription": false
+    },
+    {
+      "id": "security",
+      "name": "Security Engineer",
+      "includeKeywords": [
+        "Security Engineer",
+        "Application Security",
+        "AppSec",
+        "Product Security",
+        "Cloud Security",
+        "Cybersecurity",
+        "Detection",
+        "Security Analyst",
+        "Offensive Security"
+      ],
+      "excludeTitleKeywords": [
+        "Senior",
+        "Staff",
+        "Principal",
+        "Director",
+        "Manager",
+        "Intern",
+        "Internship"
+      ],
+      "searchDescription": false
+    }
+  ],
+  "locationKeywords": [
+    "United States",
+    "USA",
+    "Remote US",
+    "Remote, US",
+    "US Remote",
+    "New York",
+    "San Francisco",
+    "Seattle",
+    "Austin",
+    "Boston",
+    "California",
+    "Texas",
+    "Florida"
+  ]
+}
