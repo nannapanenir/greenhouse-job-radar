@@ -1,4 +1,4 @@
-import { ExternalLink, MapPin, Clock, Building2 } from 'lucide-react';
+import { ExternalLink, MapPin, Clock, Building2, Sparkles } from 'lucide-react';
 import { getPreviewText } from '../utils/htmlCleaner';
 
 const FRESHNESS_BADGES = {
@@ -9,7 +9,7 @@ const FRESHNESS_BADGES = {
   OLDER: { label: null, color: '' }
 };
 
-export default function JobCard({ job, onViewDetails, jobStatus, onStatusChange }) {
+export default function JobCard({ job, onViewDetails, jobStatus, onStatusChange, onTailorResume }) {
   const badge = FRESHNESS_BADGES[job.freshnessLevel] || FRESHNESS_BADGES.OLDER;
   const preview = getPreviewText(job.cleanContent, 150);
 
@@ -83,6 +83,15 @@ export default function JobCard({ job, onViewDetails, jobStatus, onStatusChange 
             >
               View Details
             </button>
+            {onTailorResume && (
+              <button
+                onClick={() => onTailorResume(job)}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 transition-colors"
+              >
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                Tailor Resume
+              </button>
+            )}
             <a
               href={job.absoluteUrl}
               target="_blank"

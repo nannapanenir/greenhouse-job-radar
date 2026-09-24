@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, Briefcase, AlertCircle } from 'lucide-react';
-import Header from './components/Header';
 import ResultsSummary from './components/ResultsSummary';
 import TimeFilters from './components/TimeFilters';
 import JobFilters from './components/JobFilters';
@@ -9,7 +8,6 @@ import JobDetailsModal from './components/JobDetailsModal';
 import CompanyPanel from './components/CompanyPanel';
 import RoleProfilePanel from './components/RoleProfilePanel';
 import FailedCompanies from './components/FailedCompanies';
-import Footer from './components/Footer';
 import { fetchAllJobs } from './services/greenhouseService';
 import { getCompanies } from './services/companyConfigService';
 import { isAgentDataEnabled, fetchAgentJobs } from './services/agentJobsService';
@@ -36,7 +34,7 @@ import {
 const STATUS_STORAGE_KEY = 'aiJobRadar_jobStatuses';
 const FILTER_STORAGE_KEY = 'aiJobRadar_filterSettings';
 
-export default function App() {
+export default function App({ onTailorResume }) {
   const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastFetched, setLastFetched] = useState(null);
@@ -221,8 +219,7 @@ export default function App() {
   const jobsLast24Hours = roleJobs.filter(j => j.jobAgeHours <= 24).length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header />
+    <div className="bg-slate-50">
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         <div className="flex justify-center">
@@ -325,6 +322,7 @@ export default function App() {
                     onViewDetails={setSelectedJob}
                     jobStatus={jobStatuses[job.absoluteUrl] || 'New'}
                     onStatusChange={handleStatusChange}
+                    onTailorResume={onTailorResume}
                   />
                 ))}
               </div>
@@ -351,10 +349,10 @@ export default function App() {
           onClose={() => setSelectedJob(null)}
           jobStatus={jobStatuses[selectedJob.absoluteUrl] || 'New'}
           onStatusChange={handleStatusChange}
+          onTailorResume={onTailorResume && (job => { setSelectedJob(null); onTailorResume(job); })}
         />
       )}
 
-      <Footer />
     </div>
   );
 }

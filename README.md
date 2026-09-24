@@ -85,6 +85,22 @@ python -m pytest            # agent tests (pip install -r agent/requirements.txt
 
 The app still fetches Greenhouse live by default. Open the app with `?data=agent` to load the agent's combined output instead. See [`agent/README.md`](agent/README.md) for the architecture, configuration, Job model and Greenhouse parity check.
 
+## Resume AI (Phase 2)
+
+Job Radar now includes **Resume AI**, the standalone Resume Tailor reimplemented on a Python (FastAPI) backend:
+upload a PDF/DOCX **Master Resume**, click **Tailor Resume** on any Greenhouse/Lever/Ashby job (or paste an external
+job description), review evidence-backed changes (Accept/Edit/Reject), and download an ATS-friendly DOCX or PDF.
+The server blocks unsupported claims and never changes employers, titles, dates or education.
+
+```bash
+pip install -r backend/requirements.txt
+uvicorn backend.main:app --port 8000   # Python API
+npm run dev                            # app at http://localhost:5173 (proxies /api/resume, /api/ai, ...)
+```
+
+Configure an AI provider (OpenRouter, a local OpenAI-compatible server, or Gemini) with environment variables or in
+Resume AI → Settings; keys stay on the server. See [`backend/README.md`](backend/README.md).
+
 ## Local Development
 
 ```bash

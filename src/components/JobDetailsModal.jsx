@@ -1,4 +1,4 @@
-import { X, ExternalLink, MapPin, Clock, Building2, Calendar } from 'lucide-react';
+import { X, ExternalLink, MapPin, Clock, Building2, Calendar, Sparkles } from 'lucide-react';
 import { SOURCE_LABELS } from '../services/agentJobsService';
 
 const FRESHNESS_BADGES = {
@@ -9,7 +9,7 @@ const FRESHNESS_BADGES = {
   OLDER: { label: null, color: '' }
 };
 
-export default function JobDetailsModal({ job, onClose, jobStatus, onStatusChange }) {
+export default function JobDetailsModal({ job, onClose, jobStatus, onStatusChange, onTailorResume }) {
   if (!job) return null;
 
   const badge = FRESHNESS_BADGES[job.freshnessLevel] || FRESHNESS_BADGES.OLDER;
@@ -127,6 +127,15 @@ export default function JobDetailsModal({ job, onClose, jobStatus, onStatusChang
               Apply on {SOURCE_LABELS[job.source] || 'Greenhouse'}
               <ExternalLink className="w-4 h-4" />
             </a>
+            {onTailorResume && (
+              <button
+                onClick={() => onTailorResume(job)}
+                className="inline-flex items-center gap-2 px-4 py-2 ml-2 bg-slate-100 text-slate-700 font-medium rounded-md hover:bg-slate-200 transition-colors mb-6"
+              >
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                Tailor Resume
+              </button>
+            )}
 
             <div className="border-t border-slate-200 pt-6">
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Job Description</h3>
