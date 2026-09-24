@@ -1,0 +1,61 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "5f0e1c2a-0000-4000-8000-00000000000a",
+      "title": "Software Engineer, Frontend",
+      "department": "Engineering",
+      "team": "Web",
+      "employmentType": "FullTime",
+      "location": "New York, NY",
+      "secondaryLocations": [
+        {
+          "location": "San Francisco, CA",
+          "address": {}
+        }
+      ],
+      "publishedAt": "2026-09-23T15:30:00.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "Hybrid",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "New York",
+          "addressRegion": "New York",
+          "addressCountry": "United States"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/ramp/5f0e1c2a-0000-4000-8000-00000000000a",
+      "applyUrl": "https://jobs.ashbyhq.com/ramp/5f0e1c2a-0000-4000-8000-00000000000a/application",
+      "descriptionPlain": "Build Ramp's web app with React and TypeScript.",
+      "descriptionHtml": "<p>Build Ramp's web app with React and TypeScript.</p>"
+    },
+    {
+      "id": "5f0e1c2a-0000-4000-8000-00000000000b",
+      "title": "Hidden Role",
+      "location": "New York, NY",
+      "isListed": false,
+      "publishedAt": "2026-09-23T09:00:00.000+00:00",
+      "jobUrl": "https://jobs.ashbyhq.com/ramp/5f0e1c2a-0000-4000-8000-00000000000b"
+    },
+    {
+      "id": "5f0e1c2a-0000-4000-8000-00000000000c",
+      "title": "Security Engineer",
+      "location": "Remote (United States)",
+      "isListed": true,
+      "isRemote": true,
+      "publishedAt": "2026-09-21T12:00:00.000+00:00",
+      "jobUrl": "https://jobs.ashbyhq.com/ramp/5f0e1c2a-0000-4000-8000-00000000000c",
+      "applyUrl": "https://jobs.ashbyhq.com/ramp/5f0e1c2a-0000-4000-8000-00000000000c/application",
+      "descriptionHtml": "<h2>Role</h2><p>Detection &amp; response</p>"
+    },
+    {
+      "id": "5f0e1c2a-0000-4000-8000-00000000000d",
+      "title": "Engineering Manager",
+      "location": "Toronto, Canada",
+      "isListed": true,
+      "publishedAt": "2026-09-22T12:00:00.000+00:00",
+      "jobUrl": "https://jobs.ashbyhq.com/ramp/5f0e1c2a-0000-4000-8000-00000000000d"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "$comment": "Test/demo sources for fixture runs. notion (greenhouse) and linear (ashby) have no fixture -> simulated HTTP 404.",
+  "greenhouse": [
+    {
+      "name": "Anthropic",
+      "token": "anthropic",
+      "enabled": true
+    },
+    {
+      "name": "Stripe",
+      "token": "stripe",
+      "enabled": true
+    },
+    {
+      "name": "Figma",
+      "token": "figma",
+      "enabled": true
+    },
+    {
+      "name": "Databricks",
+      "token": "databricks",
+      "enabled": true
+    },
+    {
+      "name": "Notion",
+      "token": "notion",
+      "enabled": true
+    },
+    {
+      "name": "Disabled Co",
+      "token": "disabledco",
+      "enabled": false
+    }
+  ],
+  "lever": [
+    {
+      "name": "Palantir",
+      "key": "palantir",
+      "enabled": true
+    },
+    {
+      "name": "Spotify",
+      "key": "spotify",
+      "enabled": true
+    }
+  ],
+  "ashby": [
+    {
+      "name": "Ramp",
+      "key": "ramp",
+      "enabled": true
+    },
+    {
+      "name": "Linear",
+      "key": "linear",
+      "enabled": true
+    }
+  ]
+}

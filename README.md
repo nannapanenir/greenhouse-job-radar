@@ -74,6 +74,17 @@ A new Vercel deployment may be required for environment variable changes to take
 - Jobs are fetched only from companies where `enabled === true`.
 - During local development, if `/api/companies` is unavailable, the app falls back to `src/config/greenhouse-companies.json`. In production, a configuration failure shows a visible error instead of silently using the local file.
 
+## Job Radar Agent (Python, Phase 1)
+
+`agent/` contains a Python agent that collects jobs from **Greenhouse, Lever and Ashby** into one provider-independent format and writes `public/data/jobs.json`:
+
+```bash
+python agent/main.py        # standard library only, Python 3.10+
+python -m pytest            # agent tests (pip install -r agent/requirements.txt)
+```
+
+The app still fetches Greenhouse live by default. Open the app with `?data=agent` to load the agent's combined output instead. See [`agent/README.md`](agent/README.md) for the architecture, configuration, Job model and Greenhouse parity check.
+
 ## Local Development
 
 ```bash

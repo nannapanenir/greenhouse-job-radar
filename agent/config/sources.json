@@ -1,0 +1,11 @@
+{
+  "$comment": "Greenhouse companies come from the existing app config (GREENHOUSE_COMPANIES env var, else src/config/greenhouse-companies.json). Add a \"greenhouse\" array here only to override it. Lever/Ashby entries below are UNVERIFIED starter examples - confirm each key at jobs.lever.co/<key> or jobs.ashbyhq.com/<key>.",
+  "lever": [
+    { "name": "Palantir", "key": "palantir", "enabled": true },
+    { "name": "Spotify", "key": "spotify", "enabled": true }
+  ],
+  "ashby": [
+    { "name": "Ramp", "key": "ramp", "enabled": true },
+    { "name": "Linear", "key": "linear", "enabled": true }
+  ]
+}

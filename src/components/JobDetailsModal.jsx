@@ -1,4 +1,5 @@
 import { X, ExternalLink, MapPin, Clock, Building2, Calendar } from 'lucide-react';
+import { SOURCE_LABELS } from '../services/agentJobsService';
 
 const FRESHNESS_BADGES = {
   VERY_FRESH: { label: 'Very Fresh', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -123,7 +124,7 @@ export default function JobDetailsModal({ job, onClose, jobStatus, onStatusChang
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white font-medium rounded-md hover:bg-amber-600 transition-colors mb-6"
             >
-              Apply on Greenhouse
+              Apply on {SOURCE_LABELS[job.source] || 'Greenhouse'}
               <ExternalLink className="w-4 h-4" />
             </a>
 
