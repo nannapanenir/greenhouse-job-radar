@@ -1,0 +1,155 @@
+{
+  "personalInformation": {
+    "fullName": "Alex Rivera",
+    "email": "alex.rivera@example.com",
+    "phone": "(555) 010-2030",
+    "location": "Jacksonville, FL",
+    "linkedIn": "linkedin.com/in/alex-rivera-example",
+    "portfolio": ""
+  },
+  "summary": {
+    "text": "Frontend engineer with 5 years of experience building enterprise web applications with Angular and TypeScript. Focused on accessible, high-performance UIs.",
+    "status": "extracted"
+  },
+  "skills": [
+    {
+      "name": "Angular",
+      "status": "extracted"
+    },
+    {
+      "name": "TypeScript",
+      "status": "extracted"
+    },
+    {
+      "name": "JavaScript",
+      "status": "extracted"
+    },
+    {
+      "name": "React",
+      "status": "extracted"
+    },
+    {
+      "name": "RxJs",
+      "status": "extracted"
+    },
+    {
+      "name": "NgRx",
+      "status": "extracted"
+    },
+    {
+      "name": "HTML",
+      "status": "extracted"
+    },
+    {
+      "name": "CSS",
+      "status": "extracted"
+    },
+    {
+      "name": "AWS",
+      "status": "extracted"
+    },
+    {
+      "name": "Java",
+      "status": "extracted"
+    },
+    {
+      "name": "Spring Boot",
+      "status": "extracted"
+    },
+    {
+      "name": "Jest",
+      "status": "extracted"
+    },
+    {
+      "name": "Git",
+      "status": "extracted"
+    },
+    {
+      "name": "Agile",
+      "status": "extracted"
+    }
+  ],
+  "experience": [
+    {
+      "id": "exp-0",
+      "company": "CSX",
+      "title": "Software Engineer",
+      "startDate": "Jan 2022",
+      "endDate": "Present",
+      "location": "Jacksonville, FL",
+      "status": "extracted",
+      "technologies": [
+        "Angular",
+        "TypeScript",
+        "RxJs",
+        "NgRx",
+        "AWS",
+        "Jest"
+      ],
+      "bullets": [
+        {
+          "id": "exp-0-b0",
+          "text": "Built real-time rail operations dashboards in Angular used by 300+ dispatchers.",
+          "status": "extracted"
+        },
+        {
+          "id": "exp-0-b1",
+          "text": "Migrated legacy AngularJS modules to Angular and TypeScript, cutting bundle size by 35%.",
+          "status": "extracted"
+        },
+        {
+          "id": "exp-0-b2",
+          "text": "Deployed frontend services to AWS with automated CI pipelines.",
+          "status": "extracted"
+        }
+      ]
+    },
+    {
+      "id": "exp-1",
+      "company": "CGI",
+      "title": "Associate Software Developer",
+      "startDate": "Jun 2019",
+      "endDate": "Dec 2021",
+      "location": "Fairfax, VA",
+      "status": "extracted",
+      "technologies": [
+        "Java",
+        "Spring Boot",
+        "JavaScript",
+        "React",
+        "SQL"
+      ],
+      "bullets": [
+        {
+          "id": "exp-1-b0",
+          "text": "Developed REST endpoints in Java and Spring Boot for a state benefits portal.",
+          "status": "extracted"
+        },
+        {
+          "id": "exp-1-b1",
+          "text": "Implemented React components for case-worker workflows.",
+          "status": "extracted"
+        }
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-0",
+      "degree": "B.S. Computer Science",
+      "institution": "University of Florida",
+      "endDate": "2019",
+      "status": "extracted"
+    }
+  ],
+  "certifications": [
+    {
+      "id": "cert-0",
+      "name": "AWS Certified Cloud Practitioner",
+      "issuer": "Amazon Web Services",
+      "year": "2022",
+      "status": "extracted"
+    }
+  ],
+  "awards": []
+}
