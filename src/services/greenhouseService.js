@@ -3,10 +3,12 @@
  * Fetches jobs from Greenhouse job boards
  */
 
-import jobFiltersConfig from '../config/job-filters.json';
 import { calculateJobAge } from '../utils/jobAge';
 import { cleanHtmlContent } from '../utils/htmlCleaner';
-import { matchIncludeKeywords, matchesExcludeTitle, matchesLocation } from '../utils/jobFilters';
+import { matchesLocation } from '../utils/jobFilters';
+import { LOCATION_KEYWORDS } from './roleProfileService';
+
+const NO_LOCATION = 'Location Not Provided';
 
 /**
  * Fetch jobs from a single Greenhouse board
@@ -33,19 +35,16 @@ async function fetchCompanyJobs(company) {
 function normalizeJob(rawJob, company) {
   const { jobAgeHours, jobAgeText, freshnessLevel } = calculateJobAge(rawJob.updated_at);
 
-  const matchedKeywords = matchIncludeKeywords(rawJob, jobFiltersConfig.includeKeywords);
-
   return {
     id: rawJob.id,
     companyName: company.name,
     companyToken: company.token,
     title: rawJob.title || 'Untitled Position',
-    location: rawJob.location?.name || rawJob.location || 'Location Not Provided',
+    location: rawJob.location?.name || rawJob.location || NO_LOCATION,
     updatedAt: rawJob.updated_at,
     absoluteUrl: rawJob.absolute_url,
     content: rawJob.content,
     cleanContent: cleanHtmlContent(rawJob.content),
-    matchedKeywords,
     jobAgeHours,
     jobAgeText,
     freshnessLevel
@@ -53,49 +52,15 @@ function normalizeJob(rawJob, company) {
 }
 
 /**
- * Process raw jobs from a company
+ * Process raw jobs from a company.
+ * Only the US location filter is applied here; role keyword matching happens
+ * client-side (applyRoleProfile) so switching roles needs no refetch.
+ * Jobs with no location are kept since they may be remote.
  */
 function processCompanyJobs(company, rawJobs) {
-  const { includeKeywords, excludeTitleKeywords, locationKeywords } = jobFiltersConfig;
-
-  const processedJobs = [];
-
-  for (const rawJob of rawJobs) {
-    // Normalize job
-    const job = normalizeJob(rawJob, company);
-
-    // Check if job matches include keywords
-    if (job.matchedKeywords.length === 0) {
-      continue;
-    }
-
-    // Check if job title matches exclude keywords
-    if (matchesExcludeTitle(job.title, excludeTitleKeywords)) {
-      continue;
-    }
-
-    // Check if location matches allowed keywords
-    if (!matchesLocation(job.location, locationKeywords) && job.location !== 'Location Not Provided') {
-      continue;
-    }
-
-    // Include jobs with "Location Not Provided" as they might be remote
-    if (job.location === 'Location Not Provided') {
-      // Check if content mentions US locations
-      const contentLower = (job.cleanContent || '').toLowerCase();
-      const mentionsUs = locationKeywords.some(kw =>
-        kw.toLowerCase().includes('us') ||
-        kw.toLowerCase().includes('remote')
-      );
-      if (!mentionsUs && !contentLower.includes('united states') && !contentLower.includes('remote us')) {
-        continue;
-      }
-    }
-
-    processedJobs.push(job);
-  }
-
-  return processedJobs;
+  return rawJobs
+    .map(rawJob => normalizeJob(rawJob, company))
+    .filter(job => job.location === NO_LOCATION || matchesLocation(job.location, LOCATION_KEYWORDS));
 }
 
 /**
@@ -122,7 +87,7 @@ export async function fetchAllJobs(companies) {
         name: company.name,
         token: company.token,
         totalJobs: jobs.length,
-        matchingJobs: processedJobs.length
+        usJobs: processedJobs.length
       });
 
       allJobs.push(...processedJobs);
@@ -166,11 +131,4 @@ export async function fetchAllJobs(companies) {
  */
 export function getCompaniesConfig(companies = []) {
   return companies;
-}
-
-/**
- * Get job filters configuration
- */
-export function getJobFiltersConfig() {
-  return jobFiltersConfig;
 }

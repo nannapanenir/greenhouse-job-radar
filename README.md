@@ -12,6 +12,16 @@ Find fresh Applied AI, LLM, RAG, Machine Learning, and Generative AI opportuniti
 - Job configuration panel for keywords and locations
 - Failed company tracking
 
+## Role Profiles
+
+Jobs are fetched once (US locations only) and then filtered client-side by the active **role profile**, so switching roles is instant and needs no refetch.
+
+- Built-in roles live in `src/config/role-profiles.json`: AI / LLM Engineer (default), Frontend Engineer, Full-Stack Engineer, and Security Engineer. The shared US `locationKeywords` list is also defined there.
+- `locationKeywords` (shared by all roles) is applied at fetch time and covers the whole US: country terms (`United States`, `USA`, `US`, `Remote US`…), all 50 states + DC by name and as `, ST` codes (so any `City, ST` location matches), and ~230 tech cities from major hubs down to smaller markets (Boise, Des Moines, Chattanooga, Sioux Falls…) for locations that omit the state. Location matching is whole-word and case-insensitive. City names shared with other countries (Cambridge, Vancouver, Richmond, Birmingham…) are listed with their state, e.g. `Cambridge, MA`. Jobs with no location are always kept.
+- Each profile has `includeKeywords`, `excludeTitleKeywords`, and `searchDescription`. A job is shown if its title has no excluded word and matches at least one include keyword. Matching is whole-word and case-insensitive (`RAG` does not match "leverage"), against the title only unless `searchDescription` is `true`.
+- Use the **Role Profile** panel in the sidebar to switch roles, edit keywords, create new roles, delete roles, or reset to the defaults. Edits are saved in the browser's localStorage.
+- The active role is reflected in the URL as `?role=<id>` (e.g. `?role=security`), so a link opens with that role selected. Otherwise the last used role, then the default, is used.
+
 ## Vercel Company Configuration
 
 Greenhouse company board tokens are configured using the Vercel environment variable:

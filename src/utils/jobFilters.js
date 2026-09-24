@@ -1,61 +1,94 @@
 /**
  * Job filtering utilities
- * Handles include/exclude keywords, location matching, and time filtering
+ * Handles role profile keyword matching, location matching, and time filtering
  */
 
-/**
- * Check if a job matches any of the include keywords
- * Returns array of matched keywords
- */
-export function matchIncludeKeywords(job, includeKeywords) {
-  const title = (job.title || '').toLowerCase();
-  const content = (job.content || '').toLowerCase();
-  const searchText = `${title} ${content}`;
-
-  const matchedKeywords = [];
-
-  for (const keyword of includeKeywords) {
-    const keywordLower = keyword.toLowerCase();
-    if (searchText.includes(keywordLower)) {
-      matchedKeywords.push(keyword);
-    }
-  }
-
-  return matchedKeywords;
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
- * Check if a job title contains any exclude keywords
+ * Build a case-insensitive, whole-word regex for a keyword.
+ * Lookarounds (instead of \b) keep boundaries correct for keywords that
+ * start or end with punctuation, e.g. "C++" or "Software Engineer, Web".
+ * "RAG" matches "RAG Engineer" but not "leverage".
+ */
+export function buildKeywordRegex(keyword) {
+  const pattern = escapeRegExp(keyword.trim()).replace(/\s+/g, '\\s+');
+  return new RegExp(`(?<![A-Za-z0-9])${pattern}(?![A-Za-z0-9])`, 'i');
+}
+
+function compileKeywords(keywords = []) {
+  return keywords
+    .filter(kw => typeof kw === 'string' && kw.trim() !== '')
+    .map(keyword => ({ keyword, regex: buildKeywordRegex(keyword) }));
+}
+
+/**
+ * Return the include keywords that appear in the job title
+ * (or title + cleanContent when searchDescription is true)
+ */
+export function matchIncludeKeywords(job, includeKeywords, searchDescription = false) {
+  return matchCompiled(job, compileKeywords(includeKeywords), searchDescription);
+}
+
+function matchCompiled(job, compiled, searchDescription) {
+  const searchText = searchDescription
+    ? `${job.title || ''}\n${job.cleanContent || ''}`
+    : job.title || '';
+
+  return compiled.filter(({ regex }) => regex.test(searchText)).map(({ keyword }) => keyword);
+}
+
+/**
+ * Check if a job title contains any exclude keywords (whole word)
  */
 export function matchesExcludeTitle(title, excludeTitleKeywords) {
   if (!title) return false;
-
-  const titleLower = title.toLowerCase();
-
-  for (const keyword of excludeTitleKeywords) {
-    if (titleLower.includes(keyword.toLowerCase())) {
-      return true;
-    }
-  }
-
-  return false;
+  return compileKeywords(excludeTitleKeywords).some(({ regex }) => regex.test(title));
 }
 
 /**
- * Check if a location matches any of the allowed location keywords
+ * Apply a role profile: drop excluded titles, keep jobs with at least one
+ * include keyword match, and attach matchedKeywords to each kept job
  */
-export function matchesLocation(location, locationKeywords) {
-  if (!location) return false; // No location provided, will be filtered
+export function applyRoleProfile(jobs, profile) {
+  if (!profile) return [];
 
-  const locationLower = location.toLowerCase();
+  const include = compileKeywords(profile.includeKeywords);
+  const exclude = compileKeywords(profile.excludeTitleKeywords);
+  const searchDescription = profile.searchDescription === true;
+  const result = [];
 
-  for (const keyword of locationKeywords) {
-    if (locationLower.includes(keyword.toLowerCase())) {
-      return true;
-    }
+  for (const job of jobs) {
+    const title = job.title || '';
+    if (exclude.some(({ regex }) => regex.test(title))) continue;
+
+    const matchedKeywords = matchCompiled(job, include, searchDescription);
+    if (matchedKeywords.length === 0) continue;
+
+    result.push({ ...job, matchedKeywords });
   }
 
-  return false;
+  return result;
+}
+
+const compiledLocationLists = new WeakMap();
+
+/**
+ * Check if a location matches any of the allowed location keywords
+ * (whole word, case-insensitive). Compiled regexes are cached per list.
+ */
+export function matchesLocation(location, locationKeywords) {
+  if (!location) return false;
+
+  let compiled = compiledLocationLists.get(locationKeywords);
+  if (!compiled) {
+    compiled = compileKeywords(locationKeywords);
+    compiledLocationLists.set(locationKeywords, compiled);
+  }
+
+  return compiled.some(({ regex }) => regex.test(location));
 }
 
 /**
