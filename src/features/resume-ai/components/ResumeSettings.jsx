@@ -49,7 +49,13 @@ export default function ResumeSettings({ aiStatus, apiStatus, mode, actions }) {
                 ? `✅ Connected: ${LABELS[aiStatus.provider]} — ${aiStatus.model}${aiStatus.baseUrl ? ` at ${aiStatus.baseUrl}` : ''} (configured via ${aiStatus.source === 'env' ? 'server environment' : 'server settings file'}).`
                 : 'Not connected — tailoring uses the built-in local matching engine; resume extraction needs a provider.'}
             </p>
-            {!editable && <p className="mt-2 text-xs text-slate-500">Managed by server environment variables (AI_PROVIDER, AI_MODEL, …). Change them on the server.</p>}
+            {!editable && (
+              <p className="mt-2 text-xs text-slate-500" data-testid="ai-managed">
+                {aiStatus?.managedBy === 'vercel'
+                  ? 'Provider configuration is managed by the server environment (Vercel project → Settings → Environment Variables: AI_PROVIDER, AI_MODEL and the provider key). It cannot be changed from the browser.'
+                  : 'Provider configuration is managed by server environment variables (AI_PROVIDER, AI_MODEL, …). Change them on the server.'}
+              </p>
+            )}
             {editable && (
               <div className="mt-3 space-y-2">
                 {Object.entries(LABELS).map(([value, label]) => (

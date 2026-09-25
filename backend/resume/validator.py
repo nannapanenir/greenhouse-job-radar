@@ -16,8 +16,17 @@ profile. A change is blocked, with reasons, if its new text
     (fabricated metrics, inflated years of experience);
   * introduces seniority/title words the candidate never held;
   * introduces degrees/certifications not in the profile;
-  * names a different employer from the profile.
-Session-level claims are corrected too: a JD skill without evidence can't
+  * names a different employer from the profile;
+  * introduces a new named entity — a technology, organization, product or
+    place that reads as a proper noun (capitalized mid-sentence, CamelCase,
+    C#/Node.js/.NET-style, letter+digit tokens) — that appears neither in
+    the original line nor in its evidence scope. This is the general rule
+    that catches "Rust", "Go" or "at Google" without any static list;
+  * introduces a word-form metric ("doubling", "tenfold", "hundreds of");
+  * introduces leadership/scope claims ("led", "managed a team",
+    "mentored", "team of") the role's evidence or title doesn't support.
+Ordinary rewording of existing evidence (lower-case words, reordering)
+passes. Session-level claims are corrected too: a JD skill without evidence can't
 be a "strong match" or a "Verified" keyword — it stays missing.
 """
 
@@ -39,6 +48,35 @@ CREDENTIAL_TERMS = [
     "masters", "phd", "ph.d", "mba", "doctorate", "b.s.", "m.s.", "licensed",
 ]
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
+
+# Capitalized acronyms that are generic vocabulary, not factual claims.
+GENERIC_CAPS = {
+    "api", "apis", "ui", "ux", "qa", "url", "urls", "http", "https", "json", "xml", "csv", "pdf", "saas", "sdk",
+    "ide", "os", "it", "id", "mvp", "kpi", "kpis", "sla", "slas", "roi", "b2b", "b2c", "crud", "i", "ok", "etc",
+}
+_TOKEN = re.compile(r"[A-Za-z0-9.#+][A-Za-z0-9+#./'\u2019-]*")
+_SENTENCE_BREAK = re.compile(r"(^|[.!?:;\u2022\n(\[\u2013\u2014]|\s-)\s*$")
+
+WORD_METRIC = re.compile(
+    r"\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundreds?|"
+    r"thousands?|millions?|billions?|dozens?|doubled?|doubles|doubling|tripled?|triples|tripling|quadrupl(?:e|ed|es|ing)|"
+    r"halv(?:ed|es|ing)|twice|twofold|threefold|fourfold|fivefold|tenfold|percent)\b",
+    re.IGNORECASE,
+)
+_PEOPLE = r"(?:team|teams|engineers|developers|people|staff|reports|interns|contractors|analysts|designers)"
+LEADERSHIP = [
+    ("led", r"\bled\b"),
+    ("leading", rf"\bleading\s+(?:a|an|the|teams?|engineers|developers|efforts?|initiatives?|{_PEOPLE})\b"),
+    ("spearheaded", r"\bspearhead(?:ed|ing|s)?\b"),
+    ("oversaw", r"\boversaw\b|\boversee(?:s|ing)?\b"),
+    ("supervised", r"\bsupervis(?:ed|es|ing|or)\b"),
+    ("mentored", r"\bmentor(?:ed|ing|s)?\b"),
+    ("headed", r"\bheaded\b"),
+    ("managed a team", rf"\bmanag(?:e|ed|es|ing)\s+(?:a\s+|an\s+|the\s+)?(?:[\w-]+\s+){{0,2}}{_PEOPLE}\b"),
+    ("directed a team", rf"\bdirect(?:ed|ing)\s+(?:a\s+|the\s+)?(?:[\w-]+\s+){{0,2}}{_PEOPLE}\b"),
+    ("team of", r"\bteam of\b"),
+]
+LEADERSHIP_TITLE = re.compile(r"\b(?:lead|manager|head|director|principal|staff|supervisor|vp|chief)\b", re.IGNORECASE)
 
 
 @dataclass
@@ -98,12 +136,79 @@ def _numbers(text: str) -> set[str]:
     return {n.replace(",", "") for n in _NUMBER.findall(text or "")}
 
 
+def _norm(token: str) -> str:
+    token = token.lower().strip(".'\u2019-")
+    for suffix in ("'s", "\u2019s"):
+        if token.endswith(suffix):
+            token = token[: -len(suffix)]
+    return token
+
+
+def _variants(token: str) -> set[str]:
+    base = _norm(token)
+    out = {base}
+    if len(base) > 3 and base.endswith("s"):
+        out.add(base[:-1])
+    out.add(base + "s")
+    return out
+
+
+def _vocabulary(text: str) -> set[str]:
+    """Every token (and hyphen part) of a text, normalized — the evidence vocabulary."""
+    vocab: set[str] = set()
+    for match in _TOKEN.finditer(text or ""):
+        raw = match.group(0)
+        for part in [raw, *raw.split("-")]:
+            if part:
+                vocab.add(_norm(part))
+    return vocab
+
+
+def _looks_like_entity(token: str, sentence_start: bool) -> bool:
+    core = token.strip(".'\u2019-")
+    if not core or _norm(core) in GENERIC_CAPS:
+        return False
+    if any(ch in core for ch in "#+") or re.search(r"[A-Za-z]\.[A-Za-z]", core) or core.startswith("."):
+        return True                                     # C#, C++, Node.js, .NET
+    if re.search(r"[A-Za-z]", core) and re.search(r"\d", core):
+        return True                                     # EC2, S3, K8s
+    if re.search(r"[a-z][A-Z]", core):
+        return True                                     # GraphQL, TypeScript, iOS
+    return core[0].isupper() and not sentence_start     # Rust, Go, Google (mid-sentence)
+
+
+def new_entities(updated: str, original: str, scope: str, allowed: Iterable[str] = ()) -> list[str]:
+    """Proper-noun-like tokens in ``updated`` that the original line and the
+    evidence scope never mention (case-insensitive, plural/possessive tolerant).
+    Hyphenated tokens are judged part by part ("Angular-based" -> "Angular")."""
+    known = _vocabulary(original) | _vocabulary(scope) | {_norm(a) for a in allowed}
+    found: list[str] = []
+    for match in _TOKEN.finditer(updated or ""):
+        raw = match.group(0)
+        if _variants(raw) & known:
+            continue
+        sentence_start = bool(_SENTENCE_BREAK.search(updated[: match.start()]))
+        parts = [p for p in raw.split("-") if p] if "-" in raw.strip("-") else [raw]
+        for index, part in enumerate(parts):
+            if not _looks_like_entity(part, sentence_start and index == 0) or _variants(part) & known:
+                continue
+            label = part.strip(".'\u2019-")
+            if label and label not in found:
+                found.append(label)
+    return found
+
+
 def _introduced(terms: Iterable[str], original: str, updated: str) -> list[str]:
     return [t for t in terms if contains_term(updated, t) and not contains_term(original, t)]
 
 
-def check_change(change: dict, profile: dict, *, jd_keywords: Iterable[str] = ()) -> list[str]:
-    """Stage-2 reasons this change is not supported (empty list = OK)."""
+def check_change(change: dict, profile: dict, *, jd_keywords: Iterable[str] = (), job_title: str = "") -> list[str]:
+    """Stage-2 reasons this change is not supported (empty list = OK).
+
+    ``job_title`` words may appear in a *summary* rewrite ("… for Frontend
+    Engineer roles") without counting as new entities; they still go through
+    the skill, title and credential rules.
+    """
     target = change.get("targetBulletId")
     original = change.get("original", "")
     updated = change.get("updated", "")
@@ -144,17 +249,43 @@ def check_change(change: dict, profile: dict, *, jd_keywords: Iterable[str] = ()
             reasons.append(f'Credential claim "{term}" is not in your education/certifications.')
 
     # 5. Employers: a bullet may not name a different employer.
-    own_company = "" if target == "summary" else (_experience_for(profile, target) or {}).get("company", "")
-    for exp in profile.get("experience") or []:
-        company = exp.get("company", "")
-        if company and company != own_company and _introduced([company], original, updated):
-            reasons.append(f'Mentions a different employer ("{company}").')
+    exp = None if target == "summary" else (_experience_for(profile, target) or {})
+    if exp is not None:
+        own_company = exp.get("company", "")
+        for other in profile.get("experience") or []:
+            company = other.get("company", "")
+            if company and company != own_company and _introduced([company], original, updated):
+                reasons.append(f'Mentions a different employer ("{company}").')
+
+    # 6. New named entities (technologies, organizations, products, places).
+    entity_scope = scope if exp is None else "\n".join(
+        [scope, exp.get("company", ""), exp.get("title", ""), exp.get("location", "")])
+    already = {r.split('"')[1].lower() for r in reasons if '"' in r}
+    allowed = _vocabulary(job_title) if target == "summary" else set()
+    for entity in new_entities(updated, original, entity_scope, allowed):
+        if entity.lower() not in already:
+            reasons.append(f'Introduces "{entity}", which is not supported by {scope_label} (possible invented technology, employer or claim).')
+
+    # 7. Word-form metrics.
+    scope_metrics = {m.lower() for m in WORD_METRIC.findall(scope)} | {m.lower() for m in WORD_METRIC.findall(original)}
+    for word in dict.fromkeys(m.lower() for m in WORD_METRIC.findall(updated)):
+        if word not in scope_metrics:
+            reasons.append(f'Unsupported metric "{word}": not in the original line or its evidence.')
+
+    # 8. Leadership / scope inflation.
+    leadership_scope = "\n".join([original, scope] + ([exp.get("title", "")] if exp else
+                                                     [e.get("title", "") for e in profile.get("experience") or []]))
+    has_leadership_title = bool(LEADERSHIP_TITLE.search(leadership_scope))
+    for label, pattern in LEADERSHIP:
+        if re.search(pattern, updated, re.IGNORECASE) and not re.search(pattern, leadership_scope, re.IGNORECASE) \
+                and not has_leadership_title:
+            reasons.append(f'Scope inflation "{label}": no leadership evidence for {scope_label}.')
 
     return reasons
 
 
 def validate_changes(raw_changes: list, profile: dict, *, jd_keywords: Iterable[str] = (),
-                     evidence_checks: bool = True) -> ValidationResult:
+                     evidence_checks: bool = True, job_title: str = "") -> ValidationResult:
     """Stage 1 (exact reference rules) + stage 2 (evidence). Order preserved.
 
     ``evidence_checks=False`` runs stage 1 only (= Node reference behaviour),
@@ -186,7 +317,7 @@ def validate_changes(raw_changes: list, profile: dict, *, jd_keywords: Iterable[
 
         position = stage1_survivors
         stage1_survivors += 1
-        reasons = check_change(change, profile, jd_keywords=jd_keywords) if evidence_checks else []
+        reasons = check_change(change, profile, jd_keywords=jd_keywords, job_title=job_title) if evidence_checks else []
         if reasons:
             result.blocked.append({**base, "reasons": reasons, "stage": 2})
             result.stage2_blocked += 1

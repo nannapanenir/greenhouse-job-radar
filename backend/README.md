@@ -5,7 +5,7 @@ FastAPI backend that brings the standalone
 reimplemented in Python. The Phase 1 job agent stays in `agent/`.
 
 ```bash
-pip install -r backend/requirements.txt
+pip install -r backend/requirements.txt  # runtime (root requirements.txt) + uvicorn + pytest
 uvicorn backend.main:app --port 8000      # from the repo root (or: python -m backend)
 npm run dev                               # Vite proxies /api/health, /api/ai, /api/resume, /api/jobs
 ```
@@ -32,6 +32,19 @@ tailored-resume history in localStorage behind
 `src/features/resume-ai/services/resumeStore.js` (swap for a database later).
 API keys never reach the browser.
 
+## Deployment (Vercel, same project as the React app)
+
+| Piece | Where |
+|---|---|
+| Entry point | `api/index.py` — imports the existing `backend.main:app` (no second backend) |
+| Dependencies | root `requirements.txt` (runtime only); dev extras in `backend/requirements.txt` |
+| Routing | `vercel.json` rewrites `/api/health`, `/api/ai/*`, `/api/resume/*` → `/api/index`; `/api/companies` stays `api/companies.js` (Node); SPA fallback excludes `/api/`, `/assets/`, `/data/` |
+| Function | `maxDuration: 60`, bundles `backend/**`, excludes frontend/tests/agent |
+| AI config | **Vercel environment variables only** (`VERCEL=1` ⇒ settings are read-only, the settings file is never read or written, save attempts return 409) |
+| Uploads | 4 MB app limit (Vercel rejects request bodies over 4.5 MB) — same limit locally |
+| AI time budget | 25 s per attempt, 50 s total across retries on Vercel (`AI_REQUEST_TIMEOUT_SECONDS`, `AI_TOTAL_BUDGET_SECONDS`) so retries finish inside the 60 s function window |
+| `/api/jobs` | Not routed on Vercel: the React app never calls it (agent data is served statically from `/data/jobs.json`); it stays available in local dev only |
+
 ## AI providers
 
 | Provider | Config |
@@ -40,7 +53,7 @@ API keys never reach the browser.
 | Local (Ollama, LM Studio, llama.cpp, vLLM) | `AI_PROVIDER=local`, `AI_MODEL`, `LOCAL_AI_BASE_URL` (e.g. `http://localhost:11434/v1`), optional `LOCAL_AI_API_KEY` |
 | Gemini | `AI_PROVIDER=gemini`, `AI_MODEL` (e.g. `gemini-2.0-flash`), `GEMINI_API_KEY` — via Gemini's OpenAI-compatible endpoint |
 
-Environment variables win. Without them, **Resume AI → Settings** saves the
+Environment variables win (and are the only source on Vercel). Locally, without them, **Resume AI → Settings** saves the
 provider to `backend/data/settings.json` (mode 0600, git-ignored; folder
 overridable with `RESUME_AI_DATA_DIR`), like the standalone app.
 `/api/ai/status` reports configuration but never the key. Retries: 3 attempts
@@ -56,11 +69,19 @@ standalone app); resume **extraction** needs a provider.
    target an existing bullet id or `summary`, its `original` must equal that
    line exactly, and `updated` must be non-empty. Employer, title, dates,
    education and certifications are never targets.
-3. **Evidence rules** (stage 2, new): blocked with a reason if the new text adds
-   a skill/technology without evidence (same role for bullets, whole profile
-   for the summary), a number/metric not in the original or its evidence, a
-   seniority/title word the candidate never held, a degree/certification not
-   on file, or another employer's name.
+3. **Evidence rules** (stage 2): blocked with a reason if the new text introduces
+   anything the Master profile doesn't support (bullets: that role's own text,
+   technologies, company and location; summary: the whole profile):
+   - a skill/technology from the lexicon, the JD keywords or `keywordsAdded`;
+   - **any new named entity** — a token that reads as a proper noun
+     (capitalized mid-sentence, CamelCase, `C#`/`Node.js`/`.NET`, letter+digit
+     like `EC2`) absent from the original line and its evidence. This general
+     rule catches "Rust", "Go", "at Google" without a static list; lower-case
+     rewording and reordering pass;
+   - a number, or a word-form metric ("doubling", "tenfold", "hundreds of");
+   - seniority/title words never held, or leadership/scope claims ("led",
+     "managed a team", "mentored", "team of") without evidence or a lead title;
+   - a degree/certification not on file, or another employer from the profile.
 4. **Claims correction**: JD skills without evidence can't be "Verified" or a
    "strong match" — they stay in *Still missing*; blocked changes lower the
    proposed score.
@@ -68,7 +89,11 @@ standalone app); resume **extraction** needs a provider.
    explicit "Save anyway (flagged)".
 6. **Generation** applies only `accepted`/`edited` changes, server-side, to a
    deep copy of the Master profile, skips changes whose original line no longer
-   matches, and asserts protected facts are unchanged.
+   matches, **re-validates every applied text** (an accepted change that fails is
+   skipped — so neither a stale session nor "Accept All Safe" can ship it; a
+   failing edit is applied only with the user's explicit `userFlagged` override,
+   reported in `X-User-Overrides`), and asserts protected facts are unchanged.
+   Flagged text lives only in the session and never becomes evidence.
 
 ## Tests & parity
 

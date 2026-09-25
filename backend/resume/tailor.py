@@ -150,7 +150,8 @@ def finalize_session(session: dict, profile: dict, *, mode: str = "balanced", ev
     jd_keywords = [k["keyword"] for k in session.get("keywords") or []]
     proposed = len(session.get("changes") or [])
     result = validator.validate_changes(
-        session.get("changes") or [], profile, jd_keywords=jd_keywords, evidence_checks=evidence_checks
+        session.get("changes") or [], profile, jd_keywords=jd_keywords, evidence_checks=evidence_checks,
+        job_title=session.get("jobTitle") or "",
     )
     session["changes"] = [normalize_change(c, i) for c, i in zip(result.accepted, result.stage1_positions)]
     session["blockedChanges"] = result.blocked
@@ -218,9 +219,9 @@ async def tailor(
     if session is None:
         session = fallback_engine.build_session_from_jd(job_description_text, profile, mode, preferences)
 
-    session = finalize_session(session, profile, mode=mode)
     if job and job.get("title"):
         session["jobTitle"] = job["title"]
+    session = finalize_session(session, profile, mode=mode)
     session.update(
         job=job,
         jobDescriptionText=job_description_text,

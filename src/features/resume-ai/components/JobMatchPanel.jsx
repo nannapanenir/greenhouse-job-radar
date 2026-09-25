@@ -29,6 +29,7 @@ export default function JobMatchPanel({ state, actions, onGoToJobs }) {
   const fileInput = useRef(null);
 
   const applied = session ? session.changes.filter(isApplied) : [];
+  const overrides = applied.filter(c => c.userFlagged?.length);
   const keywordsStrengthened = new Set(applied.flatMap(c => c.keywordsAdded || [])).size;
   const before = session?.matchBefore ?? analysis?.matchBefore;
 
@@ -166,6 +167,9 @@ export default function JobMatchPanel({ state, actions, onGoToJobs }) {
             <li>✓ {applied.length} line{applied.length === 1 ? '' : 's'} updated</li>
             <li>✓ {keywordsStrengthened} relevant keyword{keywordsStrengthened === 1 ? '' : 's'} strengthened</li>
             <li>✓ {session?.blockedChanges?.length || 0} unsupported suggestion(s) blocked by the server</li>
+            {overrides.length > 0 && (
+              <li className="text-red-700">⚠ {overrides.length} of your own edit(s) were saved despite validator warnings and will be included as written</li>
+            )}
             <li>✓ Employer names, job titles, dates and education preserved</li>
             {session && <li>✓ Estimated relevance: {adjustedAfterScore(session)}%</li>}
           </ul>

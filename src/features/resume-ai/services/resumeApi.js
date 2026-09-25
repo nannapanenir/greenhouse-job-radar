@@ -3,6 +3,10 @@
  * provider directly and never sees an API key.
  */
 
+// Must match backend/resume/parser.py MAX_FILE_BYTES (below Vercel's 4.5 MB request limit).
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+export const MAX_UPLOAD_LABEL = '4 MB';
+
 async function request(path, { method = 'GET', body, form } = {}) {
   let response;
   try {
@@ -23,6 +27,7 @@ async function request(path, { method = 'GET', body, form } = {}) {
         : detail?.message || (Array.isArray(detail) ? detail.map(d => d.msg).join('; ') : message);
     } catch {
       if (response.status === 404) message = 'The Job Radar Python API is not available at this address.';
+      if (response.status === 413) message = `File is too large (max ${MAX_UPLOAD_LABEL}).`;
     }
     const error = new Error(message);
     error.status = response.status;
@@ -34,6 +39,9 @@ async function request(path, { method = 'GET', body, form } = {}) {
 const json = async (path, options) => (await request(path, options)).json();
 
 function fileForm(file) {
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(`"${file.name}" is too large (max ${MAX_UPLOAD_LABEL}).`);
+  }
   const form = new FormData();
   form.append('file', file);
   return form;
@@ -59,8 +67,8 @@ export const resumeApi = {
   tailor: ({ profile, job, mode, preferences }) => json('/api/resume/tailor', {
     method: 'POST', body: { candidateProfile: profile, job, mode, preferences }
   }),
-  checkChange: ({ profile, change, jdKeywords }) => json('/api/resume/check-change', {
-    method: 'POST', body: { candidateProfile: profile, change, jdKeywords }
+  checkChange: ({ profile, change, jdKeywords, jobTitle }) => json('/api/resume/check-change', {
+    method: 'POST', body: { candidateProfile: profile, change, jdKeywords, jobTitle: jobTitle || '' }
   }),
   chat: ({ message, profile, session, job, activeChangeId }) => json('/api/resume/chat', {
     method: 'POST', body: { message, candidateProfile: profile, session, job, activeChangeId }
@@ -74,6 +82,7 @@ export const resumeApi = {
       blob: await response.blob(),
       filename: filenameFrom(response, `tailored-resume.${format}`),
       appliedChangeIds: (response.headers.get('X-Applied-Changes') || '').split(',').filter(Boolean),
+      userOverrides: (response.headers.get('X-User-Overrides') || '').split(',').filter(Boolean),
       skipped: Number(response.headers.get('X-Skipped-Changes') || 0)
     };
   }

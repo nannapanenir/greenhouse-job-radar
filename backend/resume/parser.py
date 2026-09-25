@@ -15,7 +15,11 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
-MAX_FILE_BYTES = 10 * 1024 * 1024  # same 10 MB limit as the standalone app
+# Vercel Functions reject request bodies over 4.5 MB before our code runs, so
+# the app limit is 4 MB (leaves room for multipart overhead) everywhere —
+# the same limit locally and in production. (Standalone app: 10 MB.)
+MAX_FILE_BYTES = 4 * 1024 * 1024
+MAX_FILE_LABEL = "4 MB"
 
 RESUME_TYPES = ("pdf", "docx")
 DOCUMENT_TYPES = ("pdf", "docx", "txt")  # job descriptions may also be .txt
@@ -150,7 +154,7 @@ def parse_document(
     if not data:
         raise ResumeParseError("empty_file", f'"{filename}" is empty.')
     if len(data) > MAX_FILE_BYTES:
-        raise ResumeParseError("too_large", "File is too large (max 10 MB).")
+        raise ResumeParseError("too_large", f"File is too large (max {MAX_FILE_LABEL}).")
     _check_mime(content_type, kind, filename)
 
     page_count = None

@@ -13,6 +13,14 @@ Environment (e.g. Vercel project settings or a shell export):
 Local settings file (written from the Resume AI Settings screen, like the
 standalone app's resume-tailor-data/settings.json): backend/data/settings.json
 with 0600 permissions. Override its folder with RESUME_AI_DATA_DIR.
+Local development only: on Vercel (VERCEL=1) the file is never read or
+written — configuration comes exclusively from the project's environment
+variables and the settings endpoints are read-only.
+
+AI time budget (keeps retries inside the serverless execution window):
+    AI_REQUEST_TIMEOUT_SECONDS   per attempt   (default 45 locally, 25 on Vercel)
+    AI_TOTAL_BUDGET_SECONDS      all attempts  (default 150 locally, 50 on Vercel;
+                                               Vercel maxDuration is 60 in vercel.json)
 """
 
 from __future__ import annotations
@@ -62,12 +70,34 @@ class AISettings:
             "hasApiKey": bool(self.api_key),
             "source": self.source,
             "editable": not env_managed(),
+            "managedBy": "vercel" if on_vercel() else ("environment" if env_managed() else None),
             "providers": list(PROVIDERS),
         }
 
 
+def on_vercel() -> bool:
+    """Vercel sets VERCEL=1 in its build and runtime environments."""
+    return os.environ.get("VERCEL") == "1"
+
+
 def env_managed() -> bool:
-    return bool(os.environ.get("AI_PROVIDER") or os.environ.get("AI_MODEL"))
+    """True when AI settings come only from environment variables (read-only)."""
+    return on_vercel() or bool(os.environ.get("AI_PROVIDER") or os.environ.get("AI_MODEL"))
+
+
+def _float_env(name: str, default: float) -> float:
+    try:
+        value = float(os.environ.get(name, ""))
+        return value if value > 0 else default
+    except ValueError:
+        return default
+
+
+def ai_timeouts() -> tuple[float, float]:
+    """(per-attempt timeout, total budget) in seconds for AI calls."""
+    if on_vercel():
+        return _float_env("AI_REQUEST_TIMEOUT_SECONDS", 25.0), _float_env("AI_TOTAL_BUDGET_SECONDS", 50.0)
+    return _float_env("AI_REQUEST_TIMEOUT_SECONDS", 45.0), _float_env("AI_TOTAL_BUDGET_SECONDS", 150.0)
 
 
 def _from_env() -> AISettings:
@@ -111,7 +141,7 @@ class SettingsError(ValueError):
 def save_ai_settings(provider: str, model: str, api_key: str = "", base_url: str = "") -> AISettings:
     """Same rules as the standalone POST /api/settings."""
     if env_managed():
-        raise SettingsError("AI settings are managed by server environment variables (AI_PROVIDER / AI_MODEL).")
+        raise SettingsError(_READ_ONLY_MESSAGE())
     provider = provider if provider in PROVIDERS else "openrouter"
     model = (model or "").strip()
     api_key = (api_key or "").strip()
@@ -137,12 +167,19 @@ def save_ai_settings(provider: str, model: str, api_key: str = "", base_url: str
 
 def clear_ai_settings() -> AISettings:
     if env_managed():
-        raise SettingsError("AI settings are managed by server environment variables.")
+        raise SettingsError(_READ_ONLY_MESSAGE())
     try:
         settings_file().unlink()
     except FileNotFoundError:
         pass
     return load_ai_settings()
+
+
+def _READ_ONLY_MESSAGE() -> str:  # noqa: N802 - constant-like helper
+    if on_vercel():
+        return ("AI settings are managed by Vercel environment variables (AI_PROVIDER, AI_MODEL and the provider key). "
+                "Change them in the Vercel project settings and redeploy.")
+    return "AI settings are managed by server environment variables (AI_PROVIDER / AI_MODEL)."
 
 
 def _write_private_json(path: Path, data: dict) -> None:

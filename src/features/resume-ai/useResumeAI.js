@@ -197,7 +197,8 @@ export function useResumeAI({ incoming } = {}) {
     const result = await resumeApi.checkChange({
       profile,
       change: { ...change, editedText: text },
-      jdKeywords: (session?.keywords || []).map(k => k.keyword)
+      jdKeywords: (session?.keywords || []).map(k => k.keyword),
+      jobTitle: session?.jobTitle
     });
     return result.reasons;
   }, []);
@@ -251,7 +252,10 @@ export function useResumeAI({ incoming } = {}) {
       };
       setHistory(addHistory(entry));
     }
-    say('assistant', `Downloaded ${result.filename} with ${result.appliedChangeIds.length} approved change(s).${result.skipped ? ` ${result.skipped} change(s) were skipped because the original line changed.` : ''} Your Master Resume is unchanged.`);
+    say('assistant', `Downloaded ${result.filename} with ${result.appliedChangeIds.length} approved change(s).`
+      + (result.userOverrides.length ? ` ${result.userOverrides.length} of them are your own flagged edits (unverified by your profile).` : '')
+      + (result.skipped ? ` ${result.skipped} change(s) were skipped (original line changed or failed evidence validation).` : '')
+      + ' Your Master Resume is unchanged.');
     return result;
   }
 

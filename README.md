@@ -98,8 +98,9 @@ uvicorn backend.main:app --port 8000   # Python API
 npm run dev                            # app at http://localhost:5173 (proxies /api/resume, /api/ai, ...)
 ```
 
-Configure an AI provider (OpenRouter, a local OpenAI-compatible server, or Gemini) with environment variables or in
-Resume AI → Settings; keys stay on the server. See [`backend/README.md`](backend/README.md).
+Configure an AI provider (OpenRouter, a local OpenAI-compatible server, or Gemini) with environment variables or, locally, in
+Resume AI → Settings; keys stay on the server. On Vercel the API runs as a Python Function in the same project
+(`api/index.py`) and is configured only through Vercel environment variables. See [`backend/README.md`](backend/README.md).
 
 ## Local Development
 
