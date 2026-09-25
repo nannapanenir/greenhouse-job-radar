@@ -19,6 +19,8 @@ variables and the settings endpoints are read-only.
 
 AI time budget (keeps retries inside the serverless execution window):
     AI_REQUEST_TIMEOUT_SECONDS   per attempt   (default 45 locally, 25 on Vercel)
+    AI_FALLBACK_MODEL            optional, comma-separated models of the same provider tried once each
+                                 when the primary model is overloaded/rate-limited (429/5xx)
     AI_TOTAL_BUDGET_SECONDS      all attempts  (default 150 locally, 50 on Vercel;
                                                Vercel maxDuration is 60 in vercel.json)
 """
@@ -51,6 +53,7 @@ class AISettings:
     api_key: Optional[str] = None
     base_url: Optional[str] = None
     source: str = "none"  # env | file | none
+    fallback_models: tuple[str, ...] = ()
 
     @property
     def configured(self) -> bool:
@@ -71,6 +74,7 @@ class AISettings:
             "source": self.source,
             "editable": not env_managed(),
             "managedBy": "vercel" if on_vercel() else ("environment" if env_managed() else None),
+            "fallbackModels": list(self.fallback_models),
             "providers": list(PROVIDERS),
         }
 
@@ -111,6 +115,7 @@ def _from_env() -> AISettings:
         api_key=(os.environ.get(key_var) or "").strip() or None,
         base_url=((os.environ.get("LOCAL_AI_BASE_URL") or "").strip() or None) if provider == "local" else None,
         source="env",
+        fallback_models=tuple(m.strip() for m in (os.environ.get("AI_FALLBACK_MODEL") or "").split(",") if m.strip()),
     )
 
 
