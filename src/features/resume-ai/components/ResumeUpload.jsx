@@ -1,8 +1,7 @@
 import { useRef } from 'react';
 import { FileUp, ShieldCheck } from 'lucide-react';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from '../services/resumeApi';
 import { Button, Card } from './ui';
-
-const MAX_BYTES = 10 * 1024 * 1024;
 
 /** Master Resume upload (PDF/DOCX). The server parses it; AI structures it. */
 export default function ResumeUpload({ masterResume, onUpload, aiConfigured, onOpenSettings, busy, compact = false }) {
@@ -16,8 +15,8 @@ export default function ResumeUpload({ masterResume, onUpload, aiConfigured, onO
       alert('Unsupported file type. Please use a .pdf or .docx resume.');
       return;
     }
-    if (file.size > MAX_BYTES) {
-      alert('File is too large (max 10 MB).');
+    if (file.size > MAX_UPLOAD_BYTES) {
+      alert(`File is too large (max ${MAX_UPLOAD_LABEL}).`);
       return;
     }
     onUpload(file);
@@ -38,7 +37,7 @@ export default function ResumeUpload({ masterResume, onUpload, aiConfigured, onO
   return (
     <Card title="Master Resume" icon={FileUp}>
       <p className="text-sm text-slate-600">
-        Upload your resume as a <strong>.pdf</strong> or <strong>.docx</strong> (max 10 MB). It becomes your
+        Upload your resume as a <strong>.pdf</strong> or <strong>.docx</strong> (max {MAX_UPLOAD_LABEL}). It becomes your
         <strong> Master Resume</strong>: the source of truth every tailored resume is built from. Tailoring never changes it.
       </p>
       <div className="flex items-center gap-2 mt-3 text-xs text-slate-500">

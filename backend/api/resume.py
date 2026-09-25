@@ -18,7 +18,7 @@ from ..models.resume import GenerateRequest, ProposedChange, TailoringSession, T
 from ..resume import chat, fallback_engine, tailor, validator
 from ..resume.apply import ProtectedFactError, build_tailored_profile
 from ..resume.docx_generator import build_resume_docx
-from ..resume.parser import DOCUMENT_TYPES, MAX_FILE_BYTES, ResumeParseError, parse_document, parse_resume
+from ..resume.parser import DOCUMENT_TYPES, MAX_FILE_BYTES, MAX_FILE_LABEL, ResumeParseError, parse_document, parse_resume
 from ..resume.pdf_generator import build_resume_pdf
 from ..resume.profile_extractor import ProfileExtractionError, extract_profile
 
@@ -33,7 +33,7 @@ MIME = {
 async def _read_upload(file: UploadFile) -> bytes:
     data = await file.read(MAX_FILE_BYTES + 1)
     if len(data) > MAX_FILE_BYTES:
-        raise HTTPException(status_code=413, detail="File is too large (max 10 MB).")
+        raise HTTPException(status_code=413, detail=f"File is too large (max {MAX_FILE_LABEL}).")
     return data
 
 

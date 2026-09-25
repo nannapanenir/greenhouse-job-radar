@@ -5,7 +5,7 @@ FastAPI backend that brings the standalone
 reimplemented in Python. The Phase 1 job agent stays in `agent/`.
 
 ```bash
-pip install -r backend/requirements.txt
+pip install -r backend/requirements.txt  # runtime (root requirements.txt) + uvicorn + pytest
 uvicorn backend.main:app --port 8000      # from the repo root (or: python -m backend)
 npm run dev                               # Vite proxies /api/health, /api/ai, /api/resume, /api/jobs
 ```
@@ -32,6 +32,19 @@ tailored-resume history in localStorage behind
 `src/features/resume-ai/services/resumeStore.js` (swap for a database later).
 API keys never reach the browser.
 
+## Deployment (Vercel, same project as the React app)
+
+| Piece | Where |
+|---|---|
+| Entry point | `api/index.py` — imports the existing `backend.main:app` (no second backend) |
+| Dependencies | root `requirements.txt` (runtime only); dev extras in `backend/requirements.txt` |
+| Routing | `vercel.json` rewrites `/api/health`, `/api/ai/*`, `/api/resume/*` → `/api/index`; `/api/companies` stays `api/companies.js` (Node); SPA fallback excludes `/api/`, `/assets/`, `/data/` |
+| Function | `maxDuration: 60`, bundles `backend/**`, excludes frontend/tests/agent |
+| AI config | **Vercel environment variables only** (`VERCEL=1` ⇒ settings are read-only, the settings file is never read or written, save attempts return 409) |
+| Uploads | 4 MB app limit (Vercel rejects request bodies over 4.5 MB) — same limit locally |
+| AI time budget | 25 s per attempt, 50 s total across retries on Vercel (`AI_REQUEST_TIMEOUT_SECONDS`, `AI_TOTAL_BUDGET_SECONDS`) so retries finish inside the 60 s function window |
+| `/api/jobs` | Not routed on Vercel: the React app never calls it (agent data is served statically from `/data/jobs.json`); it stays available in local dev only |
+
 ## AI providers
 
 | Provider | Config |
@@ -40,7 +53,7 @@ API keys never reach the browser.
 | Local (Ollama, LM Studio, llama.cpp, vLLM) | `AI_PROVIDER=local`, `AI_MODEL`, `LOCAL_AI_BASE_URL` (e.g. `http://localhost:11434/v1`), optional `LOCAL_AI_API_KEY` |
 | Gemini | `AI_PROVIDER=gemini`, `AI_MODEL` (e.g. `gemini-2.0-flash`), `GEMINI_API_KEY` — via Gemini's OpenAI-compatible endpoint |
 
-Environment variables win. Without them, **Resume AI → Settings** saves the
+Environment variables win (and are the only source on Vercel). Locally, without them, **Resume AI → Settings** saves the
 provider to `backend/data/settings.json` (mode 0600, git-ignored; folder
 overridable with `RESUME_AI_DATA_DIR`), like the standalone app.
 `/api/ai/status` reports configuration but never the key. Retries: 3 attempts
