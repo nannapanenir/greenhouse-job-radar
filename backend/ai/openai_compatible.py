@@ -10,6 +10,23 @@ import httpx
 from .base import AIError, AIProvider, Message
 
 
+def _error_message(response: httpx.Response) -> str:
+    """Provider error text from ``{"error": {...}}`` or Gemini's ``[{"error": {...}}]``."""
+    try:
+        body = response.json()
+    except ValueError:
+        return response.text[:300].strip()
+    if isinstance(body, list) and body:
+        body = body[0]
+    if isinstance(body, dict):
+        error = body.get("error", body)
+        if isinstance(error, dict) and error.get("message"):
+            return str(error["message"])[:300]
+        if isinstance(error, str):
+            return error[:300]
+    return response.text[:300].strip()
+
+
 class OpenAICompatibleProvider(AIProvider):
     def __init__(
         self,
@@ -51,12 +68,11 @@ class OpenAICompatibleProvider(AIProvider):
             raise self._connect_error(error) from None
 
         if not 200 <= response.status_code < 300:
-            message = response.text[:300]
-            try:
-                message = response.json().get("error", {}).get("message") or message
-            except (ValueError, AttributeError):
-                pass
             status = response.status_code
+            message = _error_message(response)
+            if status in (429, 503):
+                message = (f"{self.model} is temporarily overloaded or rate-limited ({message}). This usually clears "
+                           "within a minute — try again, or configure AI_FALLBACK_MODEL.")
             raise AIError(
                 f"{self.label} error ({status}): {message}",
                 status=status,

@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import copy
 import re
 import time
 from abc import ABC, abstractmethod
@@ -34,6 +35,14 @@ class AIProvider(ABC):
 
     def __init__(self, model: str):
         self.model = model
+        self.fallback_models: list[str] = []
+
+    def with_model(self, model: str) -> "AIProvider":
+        """Same provider/credentials, different model (used for fallbacks)."""
+        clone = copy.copy(self)
+        clone.model = model
+        clone.fallback_models = []
+        return clone
 
     @abstractmethod
     async def complete(self, messages: list[Message], *, temperature: float = 0.1, timeout: float = 60.0) -> str:
@@ -69,6 +78,28 @@ async def complete_with_retry(
         total_budget = total_budget or default_budget
 
     deadline = clock() + total_budget
+    try:
+        return await _attempts(provider, messages, attempts, per_attempt_timeout, deadline, total_budget,
+                               temperature, sleep, clock)
+    except AIError as error:
+        # Primary model overloaded / rate-limited: try each fallback model once, same budget.
+        if error.status not in (429, 500, 502, 503, 504) or not provider.fallback_models:
+            raise
+        last = error
+        for model in provider.fallback_models:
+            if deadline - clock() < MIN_ATTEMPT_SECONDS:
+                break
+            log.warning("[ai] %s %s unavailable (%s); trying fallback model %s",
+                        provider.name, provider.model, error.status, model)
+            try:
+                return await _attempts(provider.with_model(model), messages, 1, per_attempt_timeout, deadline,
+                                       total_budget, temperature, sleep, clock)
+            except AIError as fallback_error:
+                last = fallback_error
+        raise last
+
+
+async def _attempts(provider, messages, attempts, per_attempt_timeout, deadline, total_budget, temperature, sleep, clock):
     last: Optional[AIError] = None
     for attempt in range(1, attempts + 1):
         remaining = deadline - clock()

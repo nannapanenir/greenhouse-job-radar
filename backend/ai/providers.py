@@ -62,7 +62,10 @@ def create_provider(settings: AISettings, transport: Optional[httpx.AsyncBaseTra
     if not settings.configured:
         return None
     if settings.provider == "local":
-        return LocalProvider(model=settings.model, base_url=settings.base_url, api_key=settings.api_key, transport=transport)
-    if settings.provider == "gemini":
-        return GeminiProvider(model=settings.model, api_key=settings.api_key, transport=transport)
-    return OpenRouterProvider(model=settings.model, api_key=settings.api_key, transport=transport)
+        provider = LocalProvider(model=settings.model, base_url=settings.base_url, api_key=settings.api_key, transport=transport)
+    elif settings.provider == "gemini":
+        provider = GeminiProvider(model=settings.model, api_key=settings.api_key, transport=transport)
+    else:
+        provider = OpenRouterProvider(model=settings.model, api_key=settings.api_key, transport=transport)
+    provider.fallback_models = [m for m in settings.fallback_models if m != settings.model]
+    return provider
