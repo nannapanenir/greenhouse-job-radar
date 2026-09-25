@@ -59,8 +59,8 @@ export const resumeApi = {
   tailor: ({ profile, job, mode, preferences }) => json('/api/resume/tailor', {
     method: 'POST', body: { candidateProfile: profile, job, mode, preferences }
   }),
-  checkChange: ({ profile, change, jdKeywords }) => json('/api/resume/check-change', {
-    method: 'POST', body: { candidateProfile: profile, change, jdKeywords }
+  checkChange: ({ profile, change, jdKeywords, jobTitle }) => json('/api/resume/check-change', {
+    method: 'POST', body: { candidateProfile: profile, change, jdKeywords, jobTitle: jobTitle || '' }
   }),
   chat: ({ message, profile, session, job, activeChangeId }) => json('/api/resume/chat', {
     method: 'POST', body: { message, candidateProfile: profile, session, job, activeChangeId }
@@ -74,6 +74,7 @@ export const resumeApi = {
       blob: await response.blob(),
       filename: filenameFrom(response, `tailored-resume.${format}`),
       appliedChangeIds: (response.headers.get('X-Applied-Changes') || '').split(',').filter(Boolean),
+      userOverrides: (response.headers.get('X-User-Overrides') || '').split(',').filter(Boolean),
       skipped: Number(response.headers.get('X-Skipped-Changes') || 0)
     };
   }

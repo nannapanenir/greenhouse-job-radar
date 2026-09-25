@@ -29,6 +29,9 @@ class ProposedChange(CamelModel):
     evidence: str = ""
     status: ChangeStatus = "pending"
     edited_text: Optional[str] = None
+    # Set by the UI only when the user explicitly saved an edit the validator
+    # flagged ("Save anyway"). Never becomes evidence for future tailoring.
+    user_flagged: Optional[list[str]] = None
 
 
 class KeywordRow(CamelModel):

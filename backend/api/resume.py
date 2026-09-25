@@ -123,6 +123,7 @@ class CheckChangeRequest(CamelModel):
     candidate_profile: CandidateProfile
     change: ProposedChange
     jd_keywords: list[str] = Field(default_factory=list)
+    job_title: str = ""
 
 
 @router.post("/check-change")
@@ -131,7 +132,8 @@ def check_change(body: CheckChangeRequest) -> dict:
     change = body.change.dump()
     if change.get("editedText") is not None:
         change["updated"] = change["editedText"]
-    result = validator.validate_changes([change], body.candidate_profile.dump(), jd_keywords=body.jd_keywords)
+    result = validator.validate_changes([change], body.candidate_profile.dump(), jd_keywords=body.jd_keywords,
+                                        job_title=body.job_title)
     reasons = result.blocked[0]["reasons"] if result.blocked else []
     return {"ok": not reasons, "reasons": reasons}
 
@@ -145,10 +147,10 @@ class TailoredProfileRequest(CamelModel):
 def tailored_profile(body: TailoredProfileRequest) -> dict:
     master = body.candidate_profile.dump()
     try:
-        profile, applied, skipped = build_tailored_profile(master, body.session.dump() if body.session else None)
+        profile, applied, skipped, overrides = build_tailored_profile(master, body.session.dump() if body.session else None)
     except ProtectedFactError as error:
         raise HTTPException(status_code=409, detail=str(error)) from None
-    return {"profile": profile, "appliedChangeIds": applied, "skipped": skipped}
+    return {"profile": profile, "appliedChangeIds": applied, "skipped": skipped, "userOverrides": overrides}
 
 
 def _file_base_name(profile: dict, session: Optional[dict]) -> str:
@@ -166,7 +168,7 @@ def generate(body: GenerateRequest) -> Response:
     master = body.candidate_profile.dump()
     session = body.session.dump() if body.session else None
     try:
-        profile, applied, skipped = build_tailored_profile(master, session)
+        profile, applied, skipped, overrides = build_tailored_profile(master, session)
     except ProtectedFactError as error:
         raise HTTPException(status_code=409, detail=str(error)) from None
 
@@ -179,7 +181,8 @@ def generate(body: GenerateRequest) -> Response:
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Applied-Changes": ",".join(applied),
             "X-Skipped-Changes": str(len(skipped)),
-            "Access-Control-Expose-Headers": "Content-Disposition, X-Applied-Changes, X-Skipped-Changes",
+            "X-User-Overrides": ",".join(overrides),
+            "Access-Control-Expose-Headers": "Content-Disposition, X-Applied-Changes, X-Skipped-Changes, X-User-Overrides",
         },
     )
 

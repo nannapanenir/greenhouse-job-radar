@@ -40,7 +40,7 @@ def docx_text(data: bytes) -> str:
 def test_only_accepted_and_edited_changes_applied(profile):
     master = copy.deepcopy(profile)
     session = session_with({"a": "accepted", "r": "rejected", "p": "pending", "e": "edited"}, {"e": "EDITED summary text."})
-    tailored, applied, skipped = build_tailored_profile(profile, session)
+    tailored, applied, skipped, overrides = build_tailored_profile(profile, session)
     assert applied == ["e", "a"] and skipped == []
     assert tailored["summary"]["text"] == "EDITED summary text."
     bullets = {b["id"]: b["text"] for e in tailored["experience"] for b in e["bullets"]}
@@ -53,7 +53,7 @@ def test_only_accepted_and_edited_changes_applied(profile):
 def test_stale_change_is_skipped(profile):
     session = session_with({"a": "accepted"})
     session["changes"][0]["original"] = "An older version of the bullet."
-    tailored, applied, skipped = build_tailored_profile(profile, session)
+    tailored, applied, skipped, overrides = build_tailored_profile(profile, session)
     assert applied == [] and "original line changed" in skipped[0]
 
 
@@ -68,7 +68,7 @@ def test_protected_facts_guard(profile, monkeypatch):
 
 @pytest.mark.parametrize("fmt", ["docx", "pdf"])
 def test_generated_files_contain_approved_text_only(profile, fmt):
-    tailored, _, _ = build_tailored_profile(profile, session_with({"a": "accepted", "r": "rejected", "p": "pending"}))
+    tailored, _, _, _ = build_tailored_profile(profile, session_with({"a": "accepted", "r": "rejected", "p": "pending"}))
     data = build_resume_pdf(tailored) if fmt == "pdf" else build_resume_docx(tailored)
     text = pdf_text(data) if fmt == "pdf" else docx_text(data)
     assert data[:4] == (b"%PDF" if fmt == "pdf" else b"PK\x03\x04")

@@ -56,11 +56,19 @@ standalone app); resume **extraction** needs a provider.
    target an existing bullet id or `summary`, its `original` must equal that
    line exactly, and `updated` must be non-empty. Employer, title, dates,
    education and certifications are never targets.
-3. **Evidence rules** (stage 2, new): blocked with a reason if the new text adds
-   a skill/technology without evidence (same role for bullets, whole profile
-   for the summary), a number/metric not in the original or its evidence, a
-   seniority/title word the candidate never held, a degree/certification not
-   on file, or another employer's name.
+3. **Evidence rules** (stage 2): blocked with a reason if the new text introduces
+   anything the Master profile doesn't support (bullets: that role's own text,
+   technologies, company and location; summary: the whole profile):
+   - a skill/technology from the lexicon, the JD keywords or `keywordsAdded`;
+   - **any new named entity** — a token that reads as a proper noun
+     (capitalized mid-sentence, CamelCase, `C#`/`Node.js`/`.NET`, letter+digit
+     like `EC2`) absent from the original line and its evidence. This general
+     rule catches "Rust", "Go", "at Google" without a static list; lower-case
+     rewording and reordering pass;
+   - a number, or a word-form metric ("doubling", "tenfold", "hundreds of");
+   - seniority/title words never held, or leadership/scope claims ("led",
+     "managed a team", "mentored", "team of") without evidence or a lead title;
+   - a degree/certification not on file, or another employer from the profile.
 4. **Claims correction**: JD skills without evidence can't be "Verified" or a
    "strong match" — they stay in *Still missing*; blocked changes lower the
    proposed score.
@@ -68,7 +76,11 @@ standalone app); resume **extraction** needs a provider.
    explicit "Save anyway (flagged)".
 6. **Generation** applies only `accepted`/`edited` changes, server-side, to a
    deep copy of the Master profile, skips changes whose original line no longer
-   matches, and asserts protected facts are unchanged.
+   matches, **re-validates every applied text** (an accepted change that fails is
+   skipped — so neither a stale session nor "Accept All Safe" can ship it; a
+   failing edit is applied only with the user's explicit `userFlagged` override,
+   reported in `X-User-Overrides`), and asserts protected facts are unchanged.
+   Flagged text lives only in the session and never becomes evidence.
 
 ## Tests & parity
 
