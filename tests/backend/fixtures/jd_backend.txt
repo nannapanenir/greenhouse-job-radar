@@ -1,0 +1,4 @@
+Java Developer - Payments Platform
+Responsibilities: build microservices in Java and Spring Boot, own PostgreSQL schemas, deploy with Docker and Kubernetes.
+Requirements: 3+ years of experience with Java, Spring Boot, REST APIs, SQL.
+Nice to have: Kafka, AWS, Terraform.

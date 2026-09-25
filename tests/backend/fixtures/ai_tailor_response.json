@@ -1,0 +1,215 @@
+{
+  "jobTitle": "Senior Frontend Engineer",
+  "matchBefore": "61.5",
+  "matchAfter": 78.4,
+  "strongMatches": [
+    "React",
+    "TypeScript",
+    "AWS",
+    "GraphQL"
+  ],
+  "stillMissing": [
+    {
+      "skill": "Docker",
+      "note": "Not in profile"
+    },
+    {
+      "nope": 1
+    }
+  ],
+  "keywords": [
+    {
+      "keyword": "React",
+      "importance": "Required",
+      "before": 1,
+      "after": 2,
+      "location": "Experience",
+      "status": "Verified"
+    },
+    {
+      "keyword": "TypeScript",
+      "importance": "Required",
+      "before": "1",
+      "after": "2",
+      "location": "Experience",
+      "status": "Verified"
+    },
+    {
+      "keyword": "GraphQL",
+      "importance": "Required",
+      "before": 0,
+      "after": 1,
+      "location": "Experience",
+      "status": "Verified"
+    },
+    {
+      "keyword": "Docker",
+      "importance": "Preferred",
+      "before": "x",
+      "after": null,
+      "status": "Maybe"
+    },
+    {
+      "keyword": 5
+    }
+  ],
+  "changes": [
+    {
+      "id": "c1",
+      "section": "Experience",
+      "company": "CSX",
+      "bulletLabel": "Bullet 1",
+      "targetBulletId": "exp-0-b0",
+      "original": "Built real-time rail operations dashboards in Angular used by 300+ dispatchers.",
+      "updated": "Built real-time rail operations dashboards in Angular and TypeScript used by 300+ dispatchers.",
+      "keywordsAdded": [
+        "TypeScript"
+      ],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "c2",
+      "section": "Experience",
+      "company": "CSX",
+      "bulletLabel": "Bullet 2",
+      "targetBulletId": "exp-0-b2",
+      "original": "Deployed frontend services to AWS with automated CI pipelines.",
+      "updated": "Deployed frontend services to AWS with automated CI pipelines and GraphQL APIs.",
+      "keywordsAdded": [
+        "GraphQL"
+      ],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "c3",
+      "section": "Experience",
+      "company": "CSX",
+      "bulletLabel": "Bullet 3",
+      "targetBulletId": "exp-0-b0",
+      "original": "Built real-time rail operations dashboards in Angular used by 300+ dispatchers.",
+      "updated": "Built real-time rail operations dashboards in Angular used by 300+ dispatchers, improving response time by 40%.",
+      "keywordsAdded": [],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "c4",
+      "section": "Experience",
+      "company": "CSX",
+      "bulletLabel": "Bullet 4",
+      "targetBulletId": "exp-0-b1",
+      "original": "Migrated legacy AngularJS modules to Angular and TypeScript, cutting bundle size by 35%.",
+      "updated": "Led the migration of AngularJS modules to Angular and TypeScript as Senior Engineer, cutting bundle size by 35%.",
+      "keywordsAdded": [],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "c5",
+      "section": "Experience",
+      "company": "CSX",
+      "bulletLabel": "Bullet 5",
+      "targetBulletId": "exp-1-b1",
+      "original": "Implemented React components for case-worker workflows.",
+      "updated": "Implemented React components for case-worker workflows at CSX.",
+      "keywordsAdded": [],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "c6",
+      "section": "Experience",
+      "company": "CGI",
+      "bulletLabel": "Bullet 6",
+      "targetBulletId": "exp-1-b0",
+      "original": "Developed REST endpoints in Java and Spring Boot for a state benefits portal.",
+      "updated": "Developed REST endpoints in Java and Spring Boot for a state benefits portal while earning an MBA.",
+      "keywordsAdded": [],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "c7",
+      "section": "Experience",
+      "company": "CSX",
+      "bulletLabel": "Bullet 7",
+      "targetBulletId": "exp-0-b1",
+      "original": "Some text that is not in the profile.",
+      "updated": "Rewritten line",
+      "keywordsAdded": [],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "c8",
+      "section": "Experience",
+      "company": "CSX",
+      "bulletLabel": "Bullet 8",
+      "targetBulletId": "exp-9-b0",
+      "original": "whatever",
+      "updated": "Line for a bullet that doesn't exist.",
+      "keywordsAdded": [],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "c9",
+      "section": "Experience",
+      "company": "CSX",
+      "bulletLabel": "Bullet 9",
+      "targetBulletId": "exp-0-b2",
+      "original": "Deployed frontend services to AWS with automated CI pipelines.",
+      "updated": "   ",
+      "keywordsAdded": [],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "c10",
+      "section": "Summary",
+      "company": "",
+      "bulletLabel": "Bullet 10",
+      "targetBulletId": "summary",
+      "original": "Frontend engineer with 5 years of experience building enterprise web applications with Angular and TypeScript. Focused on accessible, high-performance UIs.",
+      "updated": "Frontend engineer with 5 years of experience building enterprise web applications with Angular, TypeScript and React. Focused on accessible, high-performance UIs.",
+      "keywordsAdded": [
+        "React"
+      ],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "c11",
+      "section": "Experience",
+      "company": "CSX",
+      "bulletLabel": "Bullet 11",
+      "targetBulletId": "startDate",
+      "original": "Jan 2022",
+      "updated": "Jan 2020",
+      "keywordsAdded": [],
+      "keywordsRemoved": [],
+      "reason": "Aligns with the JD.",
+      "evidence": "Profile says so."
+    },
+    {
+      "id": "",
+      "targetBulletId": "exp-1-b0",
+      "original": "  Developed REST endpoints in Java and Spring Boot for a state benefits portal. ",
+      "updated": "Developed REST endpoints in Java and Spring Boot for a state benefits portal used statewide.",
+      "section": 7
+    },
+    "not an object"
+  ]
+}

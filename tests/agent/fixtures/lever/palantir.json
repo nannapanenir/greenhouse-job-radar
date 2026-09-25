@@ -1,0 +1,59 @@
+[
+  {
+    "id": "a1b2c3d4-0000-4000-8000-000000000001",
+    "text": "Forward Deployed Software Engineer",
+    "categories": {
+      "location": "New York, NY",
+      "team": "Engineering",
+      "department": "Business Engineering",
+      "commitment": "Full-time",
+      "allLocations": [
+        "New York, NY",
+        "Washington, D.C."
+      ]
+    },
+    "country": "US",
+    "workplaceType": "onsite",
+    "createdAt": 1790179200000,
+    "descriptionPlain": "Work with customers to deploy software.\n",
+    "description": "<div>Work with customers to deploy software.</div>",
+    "lists": [
+      {
+        "text": "What you'll do",
+        "content": "<li>Build data integrations</li><li>Ship &amp; iterate</li>"
+      },
+      {
+        "text": "",
+        "content": ""
+      }
+    ],
+    "additionalPlain": "Palantir is an equal opportunity employer.",
+    "additional": "<div>Palantir is an equal opportunity employer.</div>",
+    "hostedUrl": "https://jobs.lever.co/palantir/a1b2c3d4-0000-4000-8000-000000000001",
+    "applyUrl": "https://jobs.lever.co/palantir/a1b2c3d4-0000-4000-8000-000000000001/apply"
+  },
+  {
+    "id": "a1b2c3d4-0000-4000-8000-000000000002",
+    "text": "Software Engineer - Frontend",
+    "categories": {
+      "location": "London, United Kingdom"
+    },
+    "createdAt": 1790071200000,
+    "descriptionPlain": "London role.",
+    "hostedUrl": "https://jobs.lever.co/palantir/a1b2c3d4-0000-4000-8000-000000000002",
+    "applyUrl": "https://jobs.lever.co/palantir/a1b2c3d4-0000-4000-8000-000000000002/apply"
+  },
+  {
+    "id": "a1b2c3d4-0000-4000-8000-000000000003",
+    "text": "Deployment Strategist",
+    "categories": {
+      "location": "Denver, CO"
+    },
+    "createdAt": 1789898400000,
+    "description": "<p>HTML only &amp; no plain text</p>",
+    "hostedUrl": "https://jobs.lever.co/palantir/a1b2c3d4-0000-4000-8000-000000000003"
+  },
+  {
+    "text": "Broken posting without id"
+  }
+]

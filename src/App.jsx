@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, Briefcase, AlertCircle } from 'lucide-react';
-import Header from './components/Header';
 import ResultsSummary from './components/ResultsSummary';
 import TimeFilters from './components/TimeFilters';
 import JobFilters from './components/JobFilters';
@@ -9,9 +8,9 @@ import JobDetailsModal from './components/JobDetailsModal';
 import CompanyPanel from './components/CompanyPanel';
 import RoleProfilePanel from './components/RoleProfilePanel';
 import FailedCompanies from './components/FailedCompanies';
-import Footer from './components/Footer';
 import { fetchAllJobs } from './services/greenhouseService';
 import { getCompanies } from './services/companyConfigService';
+import { isAgentDataEnabled, fetchAgentJobs } from './services/agentJobsService';
 import {
   loadProfiles,
   saveProfiles,
@@ -35,7 +34,7 @@ import {
 const STATUS_STORAGE_KEY = 'aiJobRadar_jobStatuses';
 const FILTER_STORAGE_KEY = 'aiJobRadar_filterSettings';
 
-export default function App() {
+export default function App({ onTailorResume }) {
   const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastFetched, setLastFetched] = useState(null);
@@ -46,6 +45,11 @@ export default function App() {
   const [companies, setCompanies] = useState([]);
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [companiesError, setCompaniesError] = useState(null);
+
+  // Opt-in (?data=agent): load the Python agent's combined jobs.json instead of
+  // fetching Greenhouse live. The live flow stays the default until verified.
+  const [useAgentData] = useState(isAgentDataEnabled);
+  const [fetchError, setFetchError] = useState(null);
 
   const [selectedJob, setSelectedJob] = useState(null);
 
@@ -115,17 +119,19 @@ export default function App() {
   }, []);
 
   const handleFetchJobs = async () => {
-    if (companiesError || companies.length === 0) return;
+    if (!useAgentData && (companiesError || companies.length === 0)) return;
     setIsLoading(true);
+    setFetchError(null);
     try {
-      const result = await fetchAllJobs(companies);
+      const result = useAgentData ? await fetchAgentJobs() : await fetchAllJobs(companies);
       setJobs(result.jobs);
       setSuccessfulCompanies(result.successfulCompanies);
       setFailedCompanies(result.failedCompanies);
       setTotalCompaniesSearched(result.totalCompaniesSearched);
-      setLastFetched(new Date());
+      setLastFetched(result.generatedAt ?? new Date());
     } catch (error) {
       console.error('Failed to fetch jobs:', error);
+      if (useAgentData) setFetchError(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -213,14 +219,13 @@ export default function App() {
   const jobsLast24Hours = roleJobs.filter(j => j.jobAgeHours <= 24).length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header />
+    <div className="bg-slate-50">
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         <div className="flex justify-center">
           <button
             onClick={handleFetchJobs}
-            disabled={isLoading || companiesLoading || !!companiesError}
+            disabled={isLoading || (!useAgentData && (companiesLoading || !!companiesError))}
             className={`flex items-center gap-2 px-6 py-3 text-lg font-medium rounded-lg transition-all ${
               isLoading
                 ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
@@ -228,14 +233,21 @@ export default function App() {
             }`}
           >
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Fetching Latest Jobs...' : companiesLoading ? 'Loading Companies...' : 'Fetch Latest Jobs'}
+            {isLoading ? 'Fetching Latest Jobs...' : !useAgentData && companiesLoading ? 'Loading Companies...' : 'Fetch Latest Jobs'}
           </button>
         </div>
 
-        {companiesError && (
+        {companiesError && !useAgentData && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
             <span className="text-sm text-red-700">Unable to load company configuration.</span>
+          </div>
+        )}
+
+        {fetchError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <span className="text-sm text-red-700">{fetchError}</span>
           </div>
         )}
 
@@ -310,6 +322,7 @@ export default function App() {
                     onViewDetails={setSelectedJob}
                     jobStatus={jobStatuses[job.absoluteUrl] || 'New'}
                     onStatusChange={handleStatusChange}
+                    onTailorResume={onTailorResume}
                   />
                 ))}
               </div>
@@ -336,10 +349,10 @@ export default function App() {
           onClose={() => setSelectedJob(null)}
           jobStatus={jobStatuses[selectedJob.absoluteUrl] || 'New'}
           onStatusChange={handleStatusChange}
+          onTailorResume={onTailorResume && (job => { setSelectedJob(null); onTailorResume(job); })}
         />
       )}
 
-      <Footer />
     </div>
   );
 }

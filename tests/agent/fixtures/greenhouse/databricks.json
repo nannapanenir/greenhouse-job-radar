@@ -1,0 +1,33 @@
+{
+  "jobs": [
+    {
+      "id": 3001,
+      "title": "ML Engineer, GenAI",
+      "location": {
+        "name": "San Francisco, CA"
+      },
+      "updated_at": "2026-09-22T16:00:00-07:00",
+      "absolute_url": "https://job-boards.greenhouse.io/databricks/jobs/3001",
+      "content": "&lt;p&gt;GenAI platform&lt;/p&gt;"
+    },
+    {
+      "id": 3002,
+      "title": "ML Engineer, GenAI",
+      "location": {
+        "name": "Mountain View, CA"
+      },
+      "updated_at": "2026-09-22T16:00:00-07:00",
+      "absolute_url": "https://job-boards.greenhouse.io/databricks/jobs/3001",
+      "content": "&lt;p&gt;GenAI platform&lt;/p&gt;"
+    },
+    {
+      "id": 3003,
+      "location": {
+        "name": "Austin, TX"
+      },
+      "updated_at": "2026-09-20T10:00:00-05:00",
+      "absolute_url": "https://job-boards.greenhouse.io/databricks/jobs/3003",
+      "content": "&lt;p&gt;Untitled posting&lt;/p&gt;"
+    }
+  ]
+}

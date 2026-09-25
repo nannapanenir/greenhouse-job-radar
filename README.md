@@ -74,6 +74,33 @@ A new Vercel deployment may be required for environment variable changes to take
 - Jobs are fetched only from companies where `enabled === true`.
 - During local development, if `/api/companies` is unavailable, the app falls back to `src/config/greenhouse-companies.json`. In production, a configuration failure shows a visible error instead of silently using the local file.
 
+## Job Radar Agent (Python, Phase 1)
+
+`agent/` contains a Python agent that collects jobs from **Greenhouse, Lever and Ashby** into one provider-independent format and writes `public/data/jobs.json`:
+
+```bash
+python agent/main.py        # standard library only, Python 3.10+
+python -m pytest            # agent tests (pip install -r agent/requirements.txt)
+```
+
+The app still fetches Greenhouse live by default. Open the app with `?data=agent` to load the agent's combined output instead. See [`agent/README.md`](agent/README.md) for the architecture, configuration, Job model and Greenhouse parity check.
+
+## Resume AI (Phase 2)
+
+Job Radar now includes **Resume AI**, the standalone Resume Tailor reimplemented on a Python (FastAPI) backend:
+upload a PDF/DOCX **Master Resume**, click **Tailor Resume** on any Greenhouse/Lever/Ashby job (or paste an external
+job description), review evidence-backed changes (Accept/Edit/Reject), and download an ATS-friendly DOCX or PDF.
+The server blocks unsupported claims and never changes employers, titles, dates or education.
+
+```bash
+pip install -r backend/requirements.txt
+uvicorn backend.main:app --port 8000   # Python API
+npm run dev                            # app at http://localhost:5173 (proxies /api/resume, /api/ai, ...)
+```
+
+Configure an AI provider (OpenRouter, a local OpenAI-compatible server, or Gemini) with environment variables or in
+Resume AI → Settings; keys stay on the server. See [`backend/README.md`](backend/README.md).
+
 ## Local Development
 
 ```bash

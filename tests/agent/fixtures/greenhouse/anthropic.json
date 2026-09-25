@@ -1,0 +1,61 @@
+{
+  "jobs": [
+    {
+      "id": 1001,
+      "internal_job_id": 501,
+      "title": "Applied AI Engineer",
+      "location": {
+        "name": "San Francisco, CA"
+      },
+      "updated_at": "2026-09-23T10:15:00-04:00",
+      "first_published": "2026-09-01T09:00:00-04:00",
+      "requisition_id": "R-1001",
+      "absolute_url": "https://job-boards.greenhouse.io/anthropic/jobs/1001",
+      "departments": [
+        {
+          "id": 1,
+          "name": "Engineering"
+        }
+      ],
+      "content": "&lt;h2&gt;About the role&lt;/h2&gt;&lt;p&gt;You&amp;rsquo;ll build &amp;amp; ship LLM systems.&amp;nbsp;Hybrid.&lt;/p&gt;&lt;ul&gt;&lt;li class=&quot;x&quot;&gt;Python&lt;/li&gt;&lt;li&gt;RAG &amp;amp; evals&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Salary: $200k&amp;ndash;$300k &amp;#8212; plus   equity&lt;br/&gt;Caf&amp;#233; perks &amp;#x1F600;&lt;/p&gt;&lt;div&gt;&lt;/div&gt;&lt;div&gt;&lt;/div&gt;&lt;p&gt;&amp;#160;End&lt;/p&gt;"
+    },
+    {
+      "id": 1002,
+      "title": "Research Engineer, LLM",
+      "location": {
+        "name": "London, UK"
+      },
+      "updated_at": "2026-09-23T11:00:00-04:00",
+      "absolute_url": "https://job-boards.greenhouse.io/anthropic/jobs/1002",
+      "content": "&lt;p&gt;London role&lt;/p&gt;"
+    },
+    {
+      "id": 1003,
+      "title": "Frontend Engineer",
+      "location": {
+        "name": ""
+      },
+      "updated_at": "2026-09-22T08:00:00-04:00",
+      "absolute_url": "https://job-boards.greenhouse.io/anthropic/jobs/1003",
+      "content": "&lt;p&gt;No location given&lt;/p&gt;"
+    },
+    {
+      "id": 1004,
+      "title": "Senior ML Engineer",
+      "location": "Remote - US",
+      "updated_at": "2026-09-21T08:00:00-04:00",
+      "absolute_url": "https://job-boards.greenhouse.io/anthropic/jobs/1004",
+      "content": null
+    },
+    {
+      "id": 1005,
+      "title": "Software Engineer, Web",
+      "location": {
+        "name": "Seattle, WA"
+      },
+      "updated_at": "2026-08-30T08:00:00-04:00",
+      "absolute_url": "https://job-boards.greenhouse.io/anthropic/jobs/1005",
+      "content": "&lt;P&gt;Upper-case &lt;BR&gt;tags&lt;/P&gt;"
+    }
+  ]
+}
