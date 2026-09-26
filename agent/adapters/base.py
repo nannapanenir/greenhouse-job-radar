@@ -141,11 +141,25 @@ class JobAdapter:
 
     def collect(self, company: Company) -> CompanyResult:
         """Fetch + map one company. Never raises: failures are recorded."""
-        result = CompanyResult(source=self.source, company=company)
         try:
             payload = self.transport.get_json(
                 self.board_url(company), source=self.source, company_key=company.key
             )
+        except FetchError as error:
+            result = CompanyResult(source=self.source, company=company, error=str(error))
+            log.warning("%s/%s: FAILED - %s", self.source, company.key, result.error)
+            return result
+        except Exception as error:  # never crash the run
+            result = CompanyResult(source=self.source, company=company, error=f"unexpected error: {type(error).__name__}")
+            log.warning("%s/%s: FAILED - %s (%s)", self.source, company.key, result.error, error)
+            return result
+        return self.process_payload(company, payload)
+
+    def process_payload(self, company: Company, payload: Any) -> CompanyResult:
+        """Map a fetched provider response to Jobs (shared by the CLI and the
+        async API refresh). Never raises: failures are recorded."""
+        result = CompanyResult(source=self.source, company=company)
+        try:
             postings = self.extract_postings(payload)
         except FetchError as error:
             result.error = str(error)

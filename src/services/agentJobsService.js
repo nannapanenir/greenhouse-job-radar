@@ -1,15 +1,11 @@
 /**
- * Agent Jobs Service
- * Reads the combined Greenhouse/Lever/Ashby output written by the Python agent
- * (public/data/jobs.json) and maps it to the job shape the existing UI uses.
- *
- * Opt-in while the agent is being verified: add ?data=agent to the URL.
- * Without it, the app keeps using the live Greenhouse flow (greenhouseService).
+ * Maps the Python job pipeline's output (Common Jobs, the same shape the
+ * agent writes to jobs.json and POST /api/jobs/refresh returns) to the job
+ * shape the existing UI components use.
  */
 
 import { calculateJobAge } from '../utils/jobAge';
 
-export const AGENT_JOBS_URL = '/data/jobs.json';
 const NO_LOCATION = 'Location Not Provided';
 
 export const SOURCE_LABELS = {
@@ -17,14 +13,6 @@ export const SOURCE_LABELS = {
   lever: 'Lever',
   ashby: 'Ashby'
 };
-
-export function isAgentDataEnabled() {
-  try {
-    return new URLSearchParams(window.location.search).get('data') === 'agent';
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Common Job (agent output) -> legacy UI job.
@@ -58,7 +46,7 @@ export function toUiJob(job) {
 }
 
 /**
- * Agent output -> the same result shape as greenhouseService.fetchAllJobs,
+ * Pipeline output -> the result shape App.jsx uses (jobs, companies, counts),
  * so App.jsx and the summary/failed-company panels work unchanged.
  */
 export function toFetchResult(data) {
@@ -88,12 +76,4 @@ export function toFetchResult(data) {
     totalJobs: jobs.length,
     generatedAt: data?.generatedAt ? new Date(data.generatedAt) : null
   };
-}
-
-export async function fetchAgentJobs() {
-  const response = await fetch(AGENT_JOBS_URL, { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error(`Agent jobs not available (HTTP ${response.status}). Run: python agent/main.py`);
-  }
-  return toFetchResult(await response.json());
 }

@@ -51,6 +51,7 @@ def _destination(path: str):
     ("/api/ai/settings", "/api/index"),
     ("/api/resume/parse", "/api/index"),
     ("/api/resume/tailor", "/api/index"),
+    ("/api/jobs/refresh", "/api/index"),
     ("/api/companies", None),             # existing Node function, not intercepted
     ("/", "/index.html"),
     ("/resume-ai", "/index.html"),
@@ -65,7 +66,7 @@ def test_routing(path, destination):
 def test_every_rewritten_api_path_exists_in_fastapi():
     routes = set(app.openapi()["paths"])
     for path in ("/api/health", "/api/ai/status", "/api/ai/settings", "/api/resume/parse", "/api/resume/tailor",
-                 "/api/resume/generate", "/api/resume/chat"):
+                 "/api/resume/generate", "/api/resume/chat", "/api/jobs/refresh"):
         assert path in routes
 
 
@@ -75,6 +76,8 @@ def test_function_config_and_time_budget(monkeypatch):
     per_attempt, budget = config.ai_timeouts()
     assert per_attempt <= budget < function["maxDuration"]  # AI work finishes inside the function window
     assert "backend/**" in function["includeFiles"]
+    assert "agent/**" in function["includeFiles"]            # job adapters + pipeline
+    assert "src/config/*.json" in function["includeFiles"]   # Greenhouse companies + location keywords
 
 
 def test_production_requirements_are_runtime_only():

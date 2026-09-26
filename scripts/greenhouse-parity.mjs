@@ -4,7 +4,7 @@
  *
  *   node scripts/greenhouse-parity.mjs [--fixtures DIR] [--sources FILE]
  *
- * 1. Runs the EXISTING src/services/greenhouseService.js (unchanged, bundled
+ * 1. Runs the legacy browser fetcher scripts/legacy/greenhouseService.legacy.js (unchanged, bundled
  *    with esbuild) with fetch mocked to serve DIR/greenhouse/<token>.json.
  * 2. Runs `python agent/main.py --fixtures DIR --only greenhouse`.
  * 3. Maps agent jobs through toUiJob() and compares every UI field, company
@@ -75,7 +75,7 @@ function fail(message) {
 async function loadFrontendModules(workDir) {
   const entry = join(workDir, 'entry.js');
   writeFileSync(entry, `
-    export { fetchAllJobs } from ${JSON.stringify(join(ROOT, 'src/services/greenhouseService.js'))};
+    export { fetchAllJobs } from ${JSON.stringify(join(ROOT, 'scripts/legacy/greenhouseService.legacy.js'))};
     export { applyRoleProfile } from ${JSON.stringify(join(ROOT, 'src/utils/jobFilters.js'))};
     export { cleanHtmlContent } from ${JSON.stringify(join(ROOT, 'src/utils/htmlCleaner.js'))};
     export { getDefaultProfiles } from ${JSON.stringify(join(ROOT, 'src/services/roleProfileService.js'))};

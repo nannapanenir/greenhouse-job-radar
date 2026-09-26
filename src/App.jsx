@@ -8,9 +8,8 @@ import JobDetailsModal from './components/JobDetailsModal';
 import CompanyPanel from './components/CompanyPanel';
 import RoleProfilePanel from './components/RoleProfilePanel';
 import FailedCompanies from './components/FailedCompanies';
-import { fetchAllJobs } from './services/greenhouseService';
 import { getCompanies } from './services/companyConfigService';
-import { isAgentDataEnabled, fetchAgentJobs } from './services/agentJobsService';
+import { refreshJobs } from './services/jobRefreshService';
 import {
   loadProfiles,
   saveProfiles,
@@ -46,10 +45,9 @@ export default function App({ onTailorResume }) {
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [companiesError, setCompaniesError] = useState(null);
 
-  // Opt-in (?data=agent): load the Python agent's combined jobs.json instead of
-  // fetching Greenhouse live. The live flow stays the default until verified.
-  const [useAgentData] = useState(isAgentDataEnabled);
+  // Jobs are fetched server-side (POST /api/jobs/refresh); /api/companies only feeds the Companies panel.
   const [fetchError, setFetchError] = useState(null);
+  const [refreshSummary, setRefreshSummary] = useState(null);
 
   const [selectedJob, setSelectedJob] = useState(null);
 
@@ -119,19 +117,20 @@ export default function App({ onTailorResume }) {
   }, []);
 
   const handleFetchJobs = async () => {
-    if (!useAgentData && (companiesError || companies.length === 0)) return;
     setIsLoading(true);
     setFetchError(null);
     try {
-      const result = useAgentData ? await fetchAgentJobs() : await fetchAllJobs(companies);
+      const result = await refreshJobs();
       setJobs(result.jobs);
       setSuccessfulCompanies(result.successfulCompanies);
       setFailedCompanies(result.failedCompanies);
       setTotalCompaniesSearched(result.totalCompaniesSearched);
       setLastFetched(result.generatedAt ?? new Date());
+      setRefreshSummary(result.refresh);
     } catch (error) {
       console.error('Failed to fetch jobs:', error);
-      if (useAgentData) setFetchError(error.message);
+      setFetchError(error.message);
+      setRefreshSummary(error.refresh || null);
     } finally {
       setIsLoading(false);
     }
@@ -225,7 +224,7 @@ export default function App({ onTailorResume }) {
         <div className="flex justify-center">
           <button
             onClick={handleFetchJobs}
-            disabled={isLoading || (!useAgentData && (companiesLoading || !!companiesError))}
+            disabled={isLoading}
             className={`flex items-center gap-2 px-6 py-3 text-lg font-medium rounded-lg transition-all ${
               isLoading
                 ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
@@ -233,11 +232,18 @@ export default function App({ onTailorResume }) {
             }`}
           >
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Fetching Latest Jobs...' : !useAgentData && companiesLoading ? 'Loading Companies...' : 'Fetch Latest Jobs'}
+            {isLoading ? 'Fetching Latest Jobs...' : 'Fetch Latest Jobs'}
           </button>
         </div>
 
-        {companiesError && !useAgentData && (
+        {refreshSummary && !isLoading && (
+          <p className="text-center text-sm text-slate-600" data-testid="refresh-summary">
+            {refreshSummary.jobCount} jobs found · {refreshSummary.companiesSucceeded}/{refreshSummary.companiesRequested} companies
+            checked successfully · {(refreshSummary.durationMs / 1000).toFixed(1)}s
+          </p>
+        )}
+
+        {companiesError && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
             <span className="text-sm text-red-700">Unable to load company configuration.</span>

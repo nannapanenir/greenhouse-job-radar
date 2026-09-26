@@ -4,7 +4,7 @@ Find fresh Applied AI, LLM, RAG, Machine Learning, and Generative AI opportuniti
 
 ## Features
 
-- Fetches AI/ML jobs from multiple Greenhouse company boards
+- Fetches jobs from Greenhouse, Lever and Ashby boards server-side (one `POST /api/jobs/refresh` per click)
 - AI keyword matching and filtering
 - Time-based quick filters and custom time filters
 - Job status tracking (New, Saved, Applied, Not Interested) via localStorage
@@ -70,20 +70,29 @@ A new Vercel deployment may be required for environment variable changes to take
 ### How It Works
 
 - The Vercel serverless function at `api/companies.js` reads `GREENHOUSE_COMPANIES` from `process.env`, validates each company object, and returns only `{ name, token, enabled }` to the frontend.
-- The frontend calls `/api/companies` on startup via `src/services/companyConfigService.js`.
-- Jobs are fetched only from companies where `enabled === true`.
+- The frontend calls `/api/companies` on startup via `src/services/companyConfigService.js` to fill the **Companies** panel. It no longer drives fetching.
+- The Python refresh endpoint reads the same `GREENHOUSE_COMPANIES` variable and fetches only companies where `enabled === true`.
 - During local development, if `/api/companies` is unavailable, the app falls back to `src/config/greenhouse-companies.json`. In production, a configuration failure shows a visible error instead of silently using the local file.
 
-## Job Radar Agent (Python, Phase 1)
+## Job fetching (server-side)
 
-`agent/` contains a Python agent that collects jobs from **Greenhouse, Lever and Ashby** into one provider-independent format and writes `public/data/jobs.json`:
+**Fetch Latest Jobs** makes one request, `POST /api/jobs/refresh`, to the Python API. The **Job Refresh Manager**
+(`backend/jobs/refresh.py`) then fetches every enabled Greenhouse, Lever and Ashby board with bounded concurrency
+(`JOB_FETCH_CONCURRENCY`, default 6). The browser never calls a job provider directly.
 
-```bash
-python agent/main.py        # standard library only, Python 3.10+
-python -m pytest            # agent tests (pip install -r agent/requirements.txt)
-```
+- Boards are fetched as a sliding window: a new company starts as soon as a slot frees up.
+- Each company has its own timeouts; a failing board doesn't stop the others.
+- Transient errors (timeouts, network errors, 429, 5xx) are retried with jittered backoff; 4xx errors are not retried.
+- The whole refresh has a time budget.
+- Results go through the agent's shared pipeline (normalize, filter, dedupe, sort).
 
-The app still fetches Greenhouse live by default. Open the app with `?data=agent` to load the agent's combined output instead. See [`agent/README.md`](agent/README.md) for the architecture, configuration, Job model and Greenhouse parity check.
+The response contains the Common Jobs plus `refresh` metadata
+(`companiesRequested`, `companiesSucceeded`, `companiesFailed`, `jobCount`, `failures[]`, `durationMs`, `slowest[]`).
+Nothing is scheduled: jobs refresh only when you click the button.
+
+The same adapters also run as a CLI (`python agent/main.py`, writing `public/data/jobs.json`).
+See [`agent/README.md`](agent/README.md) for the adapters, configuration and Job model, and
+[`backend/README.md`](backend/README.md) for the refresh settings and Vercel limits.
 
 ## Resume AI (Phase 2)
 
