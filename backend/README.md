@@ -52,6 +52,7 @@ API keys never reach the browser.
 | OpenRouter | `AI_PROVIDER=openrouter`, `AI_MODEL`, `OPENROUTER_API_KEY` |
 | Local (Ollama, LM Studio, llama.cpp, vLLM) | `AI_PROVIDER=local`, `AI_MODEL`, `LOCAL_AI_BASE_URL` (e.g. `http://localhost:11434/v1`), optional `LOCAL_AI_API_KEY` |
 | Gemini | `AI_PROVIDER=gemini`, `AI_MODEL` (e.g. `gemini-2.0-flash`), `GEMINI_API_KEY` — via Gemini's OpenAI-compatible endpoint |
+| Any provider (optional) | `AI_FALLBACK_MODEL` — comma-separated models of the same provider, tried once each (within the time budget) when the primary model is overloaded or rate-limited (429/5xx), e.g. Gemini "503 high demand" |
 
 Environment variables win (and are the only source on Vercel). Locally, without them, **Resume AI → Settings** saves the
 provider to `backend/data/settings.json` (mode 0600, git-ignored; folder
