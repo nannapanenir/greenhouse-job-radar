@@ -48,16 +48,29 @@ def run(
         transport = RecordingTransport(transport, save_fixtures)
         _save_sources(sources, Path(save_fixtures) / "sources.json")
 
+    tasks = build_tasks(sources, transport, only)
+
+    log.info("Collecting from %d companies", len(tasks))
+    results = collect_all(tasks, max_workers=settings.MAX_WORKERS)
+    return process_results(results, location_keywords, generated_at=generated_at)
+
+
+def build_tasks(sources: dict, transport, only: list[str] | None = None) -> list:
+    """(adapter, company) pairs for every enabled company, in source/config order."""
     tasks = []
     for source in SOURCES:
         if only and source not in only:
             continue
         adapter = ADAPTERS[source](transport)
         tasks.extend((adapter, company) for company in sources[source] if company.enabled)
+    return tasks
 
-    log.info("Collecting from %d companies", len(tasks))
-    results = collect_all(tasks, max_workers=settings.MAX_WORKERS)
 
+def process_results(results: list, location_keywords: list[str], *, generated_at: str | None = None) -> dict:
+    """Shared pipeline: normalize -> filter -> deduplicate -> sort -> output.
+
+    Used by this CLI and by the API's POST /api/jobs/refresh.
+    """
     kept = []
     for result in results:
         result.jobs = filter_jobs(normalize_jobs(result.jobs), location_keywords)

@@ -1,6 +1,6 @@
 /**
  * Minimal path router (no dependency): Jobs "/", Resume AI "/resume-ai",
- * Applications "/applications". Query strings (e.g. ?role=, ?data=agent)
+ * Applications "/applications". Query strings (e.g. ?role=)
  * are preserved across navigation.
  */
 

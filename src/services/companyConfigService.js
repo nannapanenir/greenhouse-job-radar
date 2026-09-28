@@ -1,6 +1,8 @@
 /**
  * Company Configuration Service
- * Loads Greenhouse company configuration from the Vercel serverless API.
+ * Loads Greenhouse company configuration from the Vercel serverless API
+ * (api/companies.js). Used for the Companies panel; job fetching itself now
+ * happens server-side via POST /api/jobs/refresh.
  * Falls back to the local JSON config during local development only.
  */
 

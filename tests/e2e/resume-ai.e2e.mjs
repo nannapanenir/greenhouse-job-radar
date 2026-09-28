@@ -4,8 +4,9 @@
  *   NODE_PATH=$(npm root -g) node tests/e2e/resume-ai.e2e.mjs
  *
  * Starts: a fake OpenAI-compatible "local model", the Python API
- * (AI_PROVIDER=local) and the Vite dev server; generates public/data/jobs.json
- * from the Phase 1 fixtures; then drives Chromium with Playwright.
+ * (AI_PROVIDER=local; job providers served from the Phase 1 fixtures via the
+ * dev-only JOB_FETCH_FIXTURES_DIR) and the Vite dev server; then drives
+ * Chromium with Playwright and inspects the browser's network traffic.
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -47,13 +48,11 @@ async function waitFor(url, ms = 30000) {
 }
 
 async function main() {
-  const gen = spawnSync(PY, ['agent/main.py', '-q', '--fixtures', 'tests/agent/fixtures', '--sources', 'tests/agent/fixtures/sources.json'], { cwd: ROOT, encoding: 'utf8' });
-  if (gen.status !== 0) throw new Error(gen.stderr);
-
   start(PY, ['tests/e2e/fake_ai_server.py', String(PORTS.ai)]);
   start(PY, ['-m', 'uvicorn', 'backend.main:app', '--port', String(PORTS.api)], {
     AI_PROVIDER: 'local', AI_MODEL: 'fake-local-model', LOCAL_AI_BASE_URL: `http://127.0.0.1:${PORTS.ai}/v1`,
     LOCAL_AI_API_KEY: SECRET, RESUME_AI_DATA_DIR: join(tmp, 'data'),
+    JOB_FETCH_FIXTURES_DIR: join(ROOT, 'tests/agent/fixtures'), JOB_SOURCES_FILE: join(ROOT, 'tests/agent/fixtures/sources.json'),
   });
   start('npx', ['vite', '--port', String(PORTS.web), '--strictPort'], { VITE_API_TARGET: `http://127.0.0.1:${PORTS.api}` });
   await waitFor(`http://127.0.0.1:${PORTS.api}/api/health`);
@@ -74,18 +73,30 @@ async function main() {
   });
 
   // 1. Upload master resume (fake local model extracts the profile)
-  await page.goto(`${base}/resume-ai?data=agent&role=e2e`);
+  await page.goto(`${base}/resume-ai?role=e2e`);
   await page.getByTestId('api-status').filter({ hasText: 'online' }).waitFor();
   check('Resume AI shows API + local provider status', (await page.getByTestId('api-status').innerText()).includes('local / fake-local-model'));
   await page.getByTestId('master-resume-input').first().setInputFiles(join(ROOT, 'tests/backend/fixtures/sample_resume.docx'));
   await page.getByTestId('resume-preview').filter({ hasText: 'Alex Rivera' }).waitFor({ timeout: 20000 });
   check('DOCX master resume -> Python parse -> AI -> Candidate Profile', true);
 
-  // 2. Jobs page (agent data: Greenhouse + Lever + Ashby)
+  // 2. Jobs page: ONE refresh request; providers are fetched server-side (Greenhouse + Lever + Ashby)
   await page.getByRole('link', { name: 'Jobs' }).click();
   await page.getByRole('button', { name: 'All Jobs' }).click();
+  const net = [];
+  const onRequest = r => net.push({ method: r.method(), url: r.url() });
+  page.on('request', onRequest);
   await page.getByRole('button', { name: /Fetch Latest Jobs/ }).click();
   await page.locator('h3', { hasText: 'Applied AI Engineer' }).waitFor();
+  await page.getByTestId('refresh-summary').waitFor();
+  page.off('request', onRequest);
+  const refreshCalls = net.filter(r => r.url.endsWith('/api/jobs/refresh'));
+  const providerCalls = net.filter(r => /greenhouse\.io|lever\.co|ashbyhq\.com/.test(r.url));
+  check('Fetch button makes exactly one POST /api/jobs/refresh', refreshCalls.length === 1 && refreshCalls[0].method === 'POST',
+    `${refreshCalls.length} refresh call(s)`);
+  check('Browser makes zero direct provider requests', providerCalls.length === 0, `${providerCalls.length} provider request(s)`);
+  const summary = await page.getByTestId('refresh-summary').innerText();
+  check('Refresh summary shows jobs and companies checked', /12 jobs found · 6\/9 companies checked successfully/.test(summary), summary);
   const card = title => page.locator('div.bg-white.rounded-lg.border', { has: page.locator('h3', { hasText: title }) }).first();
 
   const cases = [
@@ -177,15 +188,16 @@ async function main() {
   const apps = await page.getByTestId('applications-page').innerText();
   check('Applications lists the tailored resume version for the job', apps.includes('Applied AI Engineer') && apps.includes('v1') && apps.includes('Saved'));
 
-  // 7. Existing Jobs page still works in default (live Greenhouse) mode
+  // 7. Jobs page after a fresh load: still one server-side refresh, failed companies listed, statuses kept
   await page.goto(`${base}/`);
   const fetchButton = page.getByRole('button', { name: /Fetch Latest Jobs/ });
   await fetchButton.waitFor({ timeout: 15000 });
-  const liveRequests = [];
-  page.on('request', r => { if (r.url().includes('boards-api.greenhouse.io')) liveRequests.push(r.url()); });
+  const again = [];
+  page.on('request', r => { if (/greenhouse\.io|lever\.co|ashbyhq\.com|\/api\/jobs\/refresh/.test(r.url())) again.push(r.url()); });
   await fetchButton.click();
-  await page.waitForTimeout(1500);
-  check('Default Jobs page still uses the live Greenhouse flow', liveRequests.length > 0, `${liveRequests.length} board request(s)`);
+  await page.getByTestId('refresh-summary').waitFor();
+  check('Reload + fetch: one refresh request, no provider requests', again.length === 1 && again[0].endsWith('/api/jobs/refresh'), again.join(', '));
+  check('Failed companies still reported (partial failure)', (await page.locator('text=/Failed Companies \\(3\\)/').count()) === 1);
   check('No page errors', errors.length === 0, errors.join(' | '));
   await browser.close();
 }

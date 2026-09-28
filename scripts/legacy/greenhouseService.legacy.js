@@ -1,12 +1,16 @@
 /**
- * Greenhouse API Service
- * Fetches jobs from Greenhouse job boards
+ * LEGACY (reference only, not part of the app bundle).
+ *
+ * The browser-side Greenhouse fetcher Job Radar used before job fetching moved
+ * to the Python API (POST /api/jobs/refresh). Kept unchanged so
+ * scripts/greenhouse-parity.mjs can prove the Python pipeline returns the same
+ * results. Do not import from src/.
  */
 
-import { calculateJobAge } from '../utils/jobAge';
-import { cleanHtmlContent } from '../utils/htmlCleaner';
-import { matchesLocation } from '../utils/jobFilters';
-import { LOCATION_KEYWORDS } from './roleProfileService';
+import { calculateJobAge } from '../../src/utils/jobAge';
+import { cleanHtmlContent } from '../../src/utils/htmlCleaner';
+import { matchesLocation } from '../../src/utils/jobFilters';
+import { LOCATION_KEYWORDS } from '../../src/services/roleProfileService';
 
 const NO_LOCATION = 'Location Not Provided';
 

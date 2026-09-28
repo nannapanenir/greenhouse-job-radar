@@ -73,16 +73,19 @@ per-company `companies` (status, jobsFetched, jobsKept, error) and `failures`.
 
 ## Frontend
 
-The app keeps its live Greenhouse flow by default. `?data=agent` in the URL
-makes **Fetch Latest Jobs** load `/data/jobs.json` instead, mapped by
+**Fetch Latest Jobs** calls `POST /api/jobs/refresh` (FastAPI, `backend/api/jobs.py`).
+That endpoint runs these same adapters through the async Job Refresh Manager
+(`backend/jobs/refresh.py`), then `build_tasks()` and `process_results()` from `main.py`,
+so the output is identical to the CLI. The response is mapped by
 `toUiJob()` in `src/services/agentJobsService.js` to the fields the UI already
 uses (`absoluteUrl = applyUrl`, so saved statuses carry over).
-`public/data/jobs.json` is git-ignored until the output is verified live.
+The CLI and `public/data/jobs.json` are still useful for offline runs and fixture capture.
+The app no longer reads them.
 
 ## Greenhouse parity
 
-`scripts/greenhouse-parity.mjs` runs the existing `greenhouseService.js`
-(unchanged) and the agent on the same fixtures and compares every UI field,
+`scripts/greenhouse-parity.mjs` runs the retired browser fetcher
+(`scripts/legacy/greenhouseService.legacy.js`, kept only for this check) and the agent on the same fixtures and compares every UI field,
 job order, company success/failure lists, all role profiles, and the HTML
 cleaner on edge cases.
 
