@@ -39,7 +39,7 @@ API keys never reach the browser.
 |---|---|
 | Entry point | `api/index.py` — imports the existing `backend.main:app` (no second backend) |
 | Dependencies | root `requirements.txt` (runtime only); dev extras in `backend/requirements.txt` |
-| Routing | `vercel.json` rewrites `/api/health`, `/api/ai/*`, `/api/resume/*`, `/api/jobs/*` → `/api/index`; `/api/companies` stays `api/companies.js` (Node); SPA fallback excludes `/api/`, `/assets/`, `/data/` |
+| Routing | `vercel.json` rewrites `/api/health`, `/api/ai/*`, `/api/resume/*`, `/api/jobs/*`, `/api/auth/*` → `/api/index`; `/api/companies` stays `api/companies.js` (Node); SPA fallback excludes `/api/`, `/assets/`, `/data/` |
 | Function | `maxDuration: 60`; bundles `backend/**`, `agent/**` and `src/config/*.json` (company list, location keywords); excludes frontend code/tests/scripts |
 | AI config | **Vercel environment variables only** (`VERCEL=1` ⇒ settings are read-only, the settings file is never read or written, save attempts return 409) |
 | Uploads | 4 MB app limit (Vercel rejects request bodies over 4.5 MB) — same limit locally |
@@ -47,6 +47,88 @@ API keys never reach the browser.
 | `POST /api/jobs/refresh` | Server-side job fetching (see below). GZip-compressed response (Vercel caps responses at about 4.5 MB) |
 | `GET /api/jobs` | Legacy local-dev reader for `public/data/jobs.json`. Not used by the app; returns 404 on Vercel |
 | `/api/companies` | Still needed: it feeds the **Companies** panel (Node function, `GREENHOUSE_COMPANIES`) |
+
+## Authentication (Phase 3A: `backend/auth/`)
+
+Architecture: React → FastAPI (`/api/auth/*`) → Supabase Auth. The browser never talks to Supabase
+and never sees a token; the session is two HttpOnly cookies set by FastAPI.
+
+```
+auth/router.py           routes + HTTP status mapping; error body {"detail", "code"}
+auth/service.py          signup / login / logout / refresh / current user; Supabase error → Job Radar error
+auth/models.py           request/response models (responses carry no tokens or provider data)
+auth/dependencies.py     get_current_user (optional) · require_authenticated_user (401) for other APIs
+auth/cookies.py          cookie names, flags, lifetimes
+auth/supabase_client.py  the only Supabase-aware code: plain HTTPS calls to the Auth REST API with the
+                         publishable key (stateless, so it suits serverless; no supabase-py session state)
+```
+
+| Endpoint | Success | Notes |
+|---|---|---|
+| `POST /api/auth/signup` `{name, email, password}` | `{success, emailVerificationRequired, authenticated, user}` | Name goes to Supabase user metadata. Confirmation on → `emailVerificationRequired: true`, no cookies; off → signed in |
+| `POST /api/auth/login` `{email, password}` | `{authenticated: true, user}` + cookies | |
+| `POST /api/auth/logout` | `{success: true}` | Revokes the session at Supabase (best effort), always clears cookies |
+| `POST /api/auth/refresh` | `{authenticated: true, user}` + new cookies | From the refresh cookie |
+| `GET /api/auth/me` | `{authenticated: true, user: {id, email, name}}` | **Always 200**; signed out → `{authenticated: false, user: null}`. Transparently refreshes an expired access token |
+
+Errors: `{"detail": "<message for the user>", "code": "<stable code>"}`. Provider text is never forwarded.
+
+| Code | Status | When |
+|---|---|---|
+| `invalid_credentials` | 401 | wrong email/password |
+| `email_not_verified` | 403 | login before confirming the email |
+| `account_exists` | 409 | signup with a registered email (also detected when confirmation is on) |
+| `weak_password` | 422 | Supabase password policy (request validation 422s use FastAPI's list format) |
+| `rate_limited` | 429 | Supabase rate limits |
+| `signup_disabled` | 403 | sign-ups turned off in Supabase |
+| `not_authenticated` / `session_expired` | 401 | no / dead session (cookies cleared) |
+| `auth_not_configured` | 503 | `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` missing or invalid |
+| `auth_unavailable` | 503 | Supabase timeout, network error or 5xx (session is kept) |
+
+**Cookies** (frontend and API are the same origin, so these are first-party cookies):
+
+| | `jr_access` | `jr_refresh` |
+|---|---|---|
+| Holds | Supabase access token | Supabase refresh token |
+| Path | `/api` (every API call) | `/api/auth` (auth endpoints only) |
+| Max-Age | token lifetime (`expires_in`, 1 h by default) | 30 days (`AUTH_REFRESH_COOKIE_MAX_AGE`) |
+| Flags | `HttpOnly; SameSite=Lax` + `Secure` | same |
+
+- `Secure`: always on Vercel (production and every Preview are HTTPS) and on any HTTPS request.
+  Plain-HTTP local dev gets non-Secure cookies. Override with `AUTH_COOKIE_SECURE=1|0`.
+- `SameSite=Lax`: cross-site requests never carry the session (CSRF); `Strict` adds nothing for a
+  same-origin app and would drop the session when arriving from an email link.
+- No `Domain`: host-only. Each Preview URL has its own session; nothing leaks across `*.vercel.app`.
+- The access token is checked against Supabase (`GET /auth/v1/user`) on each authenticated request,
+  so sign-out and revoked sessions take effect immediately (costs one round trip).
+- Outside `/api/auth` an expired access token returns `401 session_expired` (the refresh cookie isn't
+  sent there). The client calls `POST /api/auth/refresh` and retries: `authFetch()` in
+  `src/features/auth/services/authApi.js` does this.
+- Responses carry `Cache-Control: no-store`.
+
+**Protecting an API later:** `user: AuthUser = Depends(require_authenticated_user)`. Nothing is protected yet.
+
+| Endpoint | Recommendation |
+|---|---|
+| `/api/health`, `/api/ai/status` | stay public |
+| `/api/auth/*` | public by design |
+| `/api/resume/*` (parse, analyze, tailor, generate, chat, …) | protect: they spend AI quota. Do it together with the sign-in UI, or signed-out users lose Resume AI |
+| `POST /api/jobs/refresh` | protect, or rate-limit per user: it fans out to every provider |
+| `POST/DELETE /api/ai/settings` | read-only on Vercel already; protect if ever writable in production |
+| future Applications / saved jobs / resume history APIs | protected from day one (per-user data) |
+| `/api/companies` (Node) | public (non-sensitive company list) |
+
+**Not implemented yet:** `POST /api/auth/forgot-password`. `AuthService.request_password_reset` and the
+Supabase `recover` call are ready, but the route waits for Supabase redirect URLs and a reset-password page.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `SUPABASE_URL` | yes | `https://<project-ref>.supabase.co` |
+| `SUPABASE_PUBLISHABLE_KEY` | yes | `sb_publishable_…` (or the legacy anon key). Secret/service-role keys are refused |
+| `AUTH_EMAIL_REDIRECT_URL` | no | where the confirmation link lands; default is the requesting deployment's origin |
+| `AUTH_REFRESH_COOKIE_MAX_AGE` | no | seconds, default 2592000 (30 days) |
+| `AUTH_COOKIE_SECURE` | no | force `1`/`0`; default automatic |
+| `SUPABASE_TIMEOUT_SECONDS` | no | default 10 |
 
 ## Job refresh (`POST /api/jobs/refresh`)
 
@@ -139,7 +221,7 @@ standalone app); resume **extraction** needs a provider.
 ## Tests & parity
 
 ```bash
-python -m pytest                                        # agent + backend (222 tests)
+python -m pytest                                        # agent + backend (268 tests)
 node scripts/resume-parity.mjs --reference ../resume-tailor   # needs `npm install` there
 NODE_PATH=$(npm root -g) node tests/e2e/resume-ai.e2e.mjs      # browser end-to-end (Playwright)
 ```

@@ -4,6 +4,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ResumeAIPage from './features/resume-ai/ResumeAIPage';
 import ApplicationsPage from './features/applications/ApplicationsPage';
+import AuthDevPage from './features/auth/pages/AuthDevPage';
 import { setPendingJob } from './features/resume-ai/services/resumeStore';
 import { toCommonJob } from './shared/models/commonJob';
 import { ROUTES, navigate, useRoute } from './shared/services/router';
@@ -47,6 +48,7 @@ export default function Root() {
             <ApplicationsPage active={route === ROUTES.applications} />
           </div>
         )}
+        {route === ROUTES.authDev && <AuthDevPage />}
       </div>
       <Footer />
     </div>
