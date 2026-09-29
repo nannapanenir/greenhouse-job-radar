@@ -7,6 +7,8 @@
  * (AI_PROVIDER=local; job providers served from the Phase 1 fixtures via the
  * dev-only JOB_FETCH_FIXTURES_DIR) and the Vite dev server; then drives
  * Chromium with Playwright and inspects the browser's network traffic.
+ * Auth (Phase 3A): a fake Supabase Auth server backs /api/auth/*; the browser
+ * must only ever talk to /api/auth and hold the session in HttpOnly cookies.
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -21,7 +23,7 @@ const { chromium } = require('playwright');
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const PY = process.env.PYTHON || 'python3';
 const SECRET = 'sk-local-E2E-SECRET-DO-NOT-LEAK';
-const PORTS = { ai: 8765, api: 8011, web: 5181 };
+const PORTS = { ai: 8765, supabase: 8766, api: 8011, web: 5181 };
 const tmp = mkdtempSync(join(tmpdir(), 'resume-ai-e2e-'));
 const procs = [];
 const results = [];
@@ -49,9 +51,11 @@ async function waitFor(url, ms = 30000) {
 
 async function main() {
   start(PY, ['tests/e2e/fake_ai_server.py', String(PORTS.ai)]);
+  start(PY, ['tests/e2e/fake_supabase_server.py', String(PORTS.supabase)]);
   start(PY, ['-m', 'uvicorn', 'backend.main:app', '--port', String(PORTS.api)], {
     AI_PROVIDER: 'local', AI_MODEL: 'fake-local-model', LOCAL_AI_BASE_URL: `http://127.0.0.1:${PORTS.ai}/v1`,
     LOCAL_AI_API_KEY: SECRET, RESUME_AI_DATA_DIR: join(tmp, 'data'),
+    SUPABASE_URL: `http://127.0.0.1:${PORTS.supabase}`, SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_E2E_KEY',
     JOB_FETCH_FIXTURES_DIR: join(ROOT, 'tests/agent/fixtures'), JOB_SOURCES_FILE: join(ROOT, 'tests/agent/fixtures/sources.json'),
   });
   start('npx', ['vite', '--port', String(PORTS.web), '--strictPort'], { VITE_API_TARGET: `http://127.0.0.1:${PORTS.api}` });
@@ -198,6 +202,53 @@ async function main() {
   await page.getByTestId('refresh-summary').waitFor();
   check('Reload + fetch: one refresh request, no provider requests', again.length === 1 && again[0].endsWith('/api/jobs/refresh'), again.join(', '));
   check('Failed companies still reported (partial failure)', (await page.locator('text=/Failed Companies \\(3\\)/').count()) === 1);
+
+  // 8. Auth foundation (temporary /auth-dev page; the final UI comes later)
+  const authNet = [];
+  page.on('request', r => authNet.push(r.url()));
+  await page.goto(`${base}/auth-dev`);
+  const status = page.getByTestId('auth-status');
+  await status.getByText('unauthenticated').waitFor();
+  check('Auth: initial state from /api/auth/me is signed out', true);
+  await page.getByLabel('Email').fill('e2e@example.com');
+  await page.getByLabel('Password').fill('wrong-password');
+  await page.getByRole('button', { name: 'Log in' }).click();
+  await page.getByTestId('auth-message').getByText(/Incorrect email or password/).waitFor();
+  check('Auth: invalid login shows the clean API error', true);
+  await page.getByLabel('Password').fill('E2E-password-123');
+  await page.getByRole('button', { name: 'Log in' }).click();
+  await status.getByText('authenticated', { exact: true }).waitFor();
+  check('Auth: login -> authenticated with name/email', (await status.innerText()).includes('E2E User <e2e@example.com>'));
+  check('Auth: ProtectedRoute renders children when signed in', await page.getByTestId('protected-content').isVisible());
+  const cookies = await context.cookies();
+  const access = cookies.find(c => c.name === 'jr_access');
+  const refresh = cookies.find(c => c.name === 'jr_refresh');
+  check('Auth: session cookies are HttpOnly + SameSite=Lax, path-scoped',
+    access?.httpOnly && refresh?.httpOnly && access.sameSite === 'Lax' && access.path === '/api' && refresh.path === '/api/auth',
+    JSON.stringify(cookies.map(({ name, path, httpOnly, sameSite }) => ({ name, path, httpOnly, sameSite }))));
+  const visible = await page.evaluate(() => ({ cookie: document.cookie, storage: JSON.stringify({ ...localStorage, ...sessionStorage }) }));
+  check('Auth: tokens not readable by JS or stored in localStorage/sessionStorage',
+    !visible.cookie.includes('jr_') && !/at_[0-9a-f]{16}|rt_[0-9a-f]{16}|access_token|refresh_token/.test(visible.storage + visible.cookie));
+  await page.reload();
+  await status.getByText('authenticated', { exact: true }).waitFor();
+  check('Auth: session survives a reload (cookie sent automatically)', true);
+  const regular = await page.evaluate(() => fetch('/api/health').then(r => r.status));
+  check('Auth: /api/health stays public', regular === 200);
+  await page.getByLabel('Name (sign up only)').fill('New Person');
+  await page.getByLabel('Email').fill('new@example.com');
+  await page.getByLabel('Password').fill('Another-pass-456');
+  await page.getByRole('button', { name: 'Sign up' }).click();
+  await page.getByTestId('auth-message').getByText(/Check your email/).waitFor();
+  check('Auth: signup with email confirmation reports verification required', true);
+  await page.getByRole('button', { name: 'Log out' }).click();
+  await status.getByText('unauthenticated').waitFor();
+  const after = (await context.cookies()).filter(c => c.name.startsWith('jr_'));
+  check('Auth: logout clears the session cookies', after.length === 0, JSON.stringify(after.map(c => c.name)));
+  await page.reload();
+  await status.getByText('unauthenticated').waitFor();
+  check('Auth: signed out after reload', true);
+  const direct = authNet.filter(u => u.includes(`:${PORTS.supabase}`) || /supabase\.co/.test(u));
+  check('Auth: browser never calls Supabase directly (only /api/auth)', direct.length === 0 && authNet.some(u => u.includes('/api/auth/login')), direct.join(', '));
   check('No page errors', errors.length === 0, errors.join(' | '));
   await browser.close();
 }

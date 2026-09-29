@@ -1,6 +1,7 @@
 /**
  * Minimal path router (no dependency): Jobs "/", Resume AI "/resume-ai",
- * Applications "/applications". Query strings (e.g. ?role=)
+ * Applications "/applications" (+ the temporary, unlinked "/auth-dev" auth
+ * test page). Query strings (e.g. ?role=)
  * are preserved across navigation.
  */
 
@@ -9,7 +10,8 @@ import { useEffect, useState } from 'react';
 export const ROUTES = {
   jobs: '/',
   resumeAI: '/resume-ai',
-  applications: '/applications'
+  applications: '/applications',
+  authDev: '/auth-dev' // temporary auth test page, not in the navigation
 };
 
 const EVENT = 'jobradar:navigate';

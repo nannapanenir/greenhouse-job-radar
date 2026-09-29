@@ -52,6 +52,8 @@ def _destination(path: str):
     ("/api/resume/parse", "/api/index"),
     ("/api/resume/tailor", "/api/index"),
     ("/api/jobs/refresh", "/api/index"),
+    ("/api/auth/login", "/api/index"),
+    ("/api/auth/me", "/api/index"),
     ("/api/companies", None),             # existing Node function, not intercepted
     ("/", "/index.html"),
     ("/resume-ai", "/index.html"),
@@ -66,7 +68,8 @@ def test_routing(path, destination):
 def test_every_rewritten_api_path_exists_in_fastapi():
     routes = set(app.openapi()["paths"])
     for path in ("/api/health", "/api/ai/status", "/api/ai/settings", "/api/resume/parse", "/api/resume/tailor",
-                 "/api/resume/generate", "/api/resume/chat", "/api/jobs/refresh"):
+                 "/api/resume/generate", "/api/resume/chat", "/api/jobs/refresh",
+                 "/api/auth/signup", "/api/auth/login", "/api/auth/logout", "/api/auth/refresh", "/api/auth/me"):
         assert path in routes
 
 

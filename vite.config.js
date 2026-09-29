@@ -17,6 +17,7 @@ export default defineConfig({
       '/api/ai': pythonApi,
       '/api/resume': pythonApi,
       '/api/jobs': pythonApi,
+      '/api/auth': pythonApi,
     },
   },
 });

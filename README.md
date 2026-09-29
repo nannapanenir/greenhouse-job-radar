@@ -94,6 +94,15 @@ The same adapters also run as a CLI (`python agent/main.py`, writing `public/dat
 See [`agent/README.md`](agent/README.md) for the adapters, configuration and Job model, and
 [`backend/README.md`](backend/README.md) for the refresh settings and Vercel limits.
 
+## Authentication (Phase 3A, foundation)
+
+Sign-in goes through the Python API: React calls `/api/auth/*`, FastAPI calls Supabase Auth, and the
+session lives in HttpOnly cookies. React never loads a Supabase client or stores a token.
+`src/features/auth/` provides `AuthProvider` / `useAuth()` / `ProtectedRoute`. The final Login/Signup
+design isn't built yet: `/auth-dev` is a temporary, unlinked test page, and no page requires sign-in.
+Configure `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in Vercel. Details, cookie decisions and
+the endpoint contract: [`backend/README.md`](backend/README.md#authentication-phase-3a-backendauth).
+
 ## Resume AI (Phase 2)
 
 Job Radar now includes **Resume AI**, the standalone Resume Tailor reimplemented on a Python (FastAPI) backend:
